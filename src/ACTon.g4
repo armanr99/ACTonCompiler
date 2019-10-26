@@ -1,5 +1,11 @@
 grammar ACTon;
 
+@members{
+    void print(String str){
+       System.out.println(str);
+    }
+}
+
 program:
     actorDefinition+ main
 ;
@@ -64,8 +70,32 @@ statements:
 ;
 
 statement:
+    matchedStatement |
+    openStatement
+;
+
+otherStatement:
     blockStatement |
-    assignmentStatement
+    expressionStatement SEMI |
+    loopStatement |
+    SEMI
+;
+
+matchedStatement:
+    IF LPAR expressionStatement RPAR matchedStatement ELSE matchedStatement |
+    otherStatement
+;
+
+openStatement:
+    IF LPAR expressionStatement RPAR statement |
+    IF LPAR expressionStatement RPAR matchedStatement ELSE openStatement
+;
+
+loopStatement:
+    FOR LPAR assignmentStatement? SEMI expressionStatement? SEMI assignmentStatement? RPAR
+    LBRACE
+        statements
+    RBRACE
 ;
 
 blockStatement:
@@ -74,8 +104,21 @@ blockStatement:
     RBRACE
 ;
 
+expressionStatement:
+    normalStatement |
+    assignmentStatement
+;
+
+normalStatement:
+    expressionOr
+;
+
+//expressionTernary:
+//    expressionStatement Q_MARK expressionStatement COLON expressionStatement
+//;
+
 assignmentStatement:
-    ID '=' expressionOr SEMI | expressionOr SEMI
+    ID '=' expressionOr
 ;
 
 expression:
