@@ -118,7 +118,7 @@ statementMsgHandler:
 ;
 
 msgHandlerStatementArguments:
-    (expression (COMMA expression)*)?
+    (statementExpression (COMMA statementExpression)*)?
 ;
 
 statementPrint:
@@ -144,7 +144,7 @@ statementOpen:
 ;
 
 statementLoop:
-    FOR { print("Loop: for"); } LPAR statementAssignment? SEMI statementExpression? SEMI statementAssignment? RPAR
+    FOR { print("Loop: for"); } LPAR expressionAssignment? SEMI statementExpression? SEMI expressionAssignment? RPAR
         statements
 ;
 
@@ -155,21 +155,17 @@ statementBlock:
 ;
 
 statementExpression:
-    statementNonAssignment |
-    statementAssignment
+    expressionNonAssignment |
+    expressionAssignment
 ;
 
-statementNonAssignment:
+expressionNonAssignment:
     expressionOr
 ;
 
-statementAssignment:
-    LPAR statementAssignment RPAR |
+expressionAssignment:
+    LPAR expressionAssignment RPAR |
     ID '=' { print("Operator:="); } expressionOr
-;
-
-expression:
-    expressionOr
 ;
 
 expressionOr:
@@ -210,8 +206,8 @@ expressionOther:
     TRUE |
     FALSE |
     ID |
-    ID LBRACK expression RBRACK |
-    LPAR expression RPAR
+    ID LBRACK statementExpression RBRACK |
+    LPAR statementExpression RPAR
 ;
 
 main:
@@ -249,7 +245,7 @@ actorDeclaration
 ;
 
 actorDeclarationArguments:
-    (expression (COMMA expression)*)?
+    (statementExpression (COMMA statementExpression)*)?
 ;
 
 //Reserved keywords
