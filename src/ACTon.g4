@@ -65,8 +65,8 @@ varDeclaration:
 ;
 
 arrayDeclaration:
-    INT ID LBRACK CONST_INT RBRACK
-    //TODO: vardec
+    INT (name = ID) LBRACK CONST_INT RBRACK
+    { print("int[]" + $name); }
 ;
 
 primitiveDeclaration:
@@ -212,7 +212,7 @@ expressionPre:
 ;
 
 expressionPost:
-    expressionOther (name = (MINUSMINUS | PLUSPLUS) { print("Operator:" + $name.text); })* //TODO: print preorder
+    expressionOther (name = (MINUSMINUS | PLUSPLUS) { print("Operator:" + $name.text); })*
 ;
 
 expressionOther:
