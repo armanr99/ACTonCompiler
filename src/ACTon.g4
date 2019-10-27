@@ -140,7 +140,7 @@ expressionStatement:
 ;
 
 normalStatement:
-    expressionOr
+    expressionOr | expressionMethods
 ;
 
 //expressionTernary:
@@ -185,11 +185,11 @@ expressionPre:
 ;
 
 expressionPost:
-    expressionMethods (name = (MINUSMINUS | PLUSPLUS) { print("Operator:" + $name.text); })*
+    expressionOther (name = (MINUSMINUS | PLUSPLUS) { print("Operator:" + $name.text); })*
 ;
 
 expressionMethods:
-    ((name = (SELF | SENDER | ID)) (method = expressionMethodsTemp) {print("MsgHandlerCall:" + $name.text + "," + $method.str); } ) | expressionOther //TODO: fix child name
+    ((name = (SELF | SENDER | ID)) (method = expressionMethodsTemp) {print("MsgHandlerCall:" + $name.text + "," + $method.str); } )
 ;
 
 expressionMethodsTemp returns [String str]:
