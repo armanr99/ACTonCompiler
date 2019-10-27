@@ -220,6 +220,7 @@ expressionOther:
     CONST_STRING |
     TRUE |
     FALSE |
+    SENDER |
     ID |
     ID LBRACK statementExpression RBRACK |
     LPAR statementExpression RPAR
