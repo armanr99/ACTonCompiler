@@ -102,6 +102,8 @@ otherStatement:
     expressionStatement SEMI |
     loopStatement |
     printStatement |
+    BREAK SEMI |
+    CONTINUE SEMI |
     SEMI
 ;
 
@@ -175,14 +177,14 @@ expressionAdd:
 ;
 
 expressionMult:
-    expressionUnary ((name = (STAR | SLASH | MODULO) { print("Operator:" + $name.text); })expressionUnary)*
+    expressionPre ((name = (STAR | SLASH | MODULO) { print("Operator:" + $name.text); })expressionPre)*
 ;
 
-expressionUnary:
-    (name = (NOT | MINUS | MINUSMINUS | PLUSPLUS) { print("Operator:" + $name.text); } )* expressionMem
+expressionPre:
+    (name = (NOT | MINUS | MINUSMINUS | PLUSPLUS) { print("Operator:" + $name.text); } )* expressionPost
 ;
 
-expressionMem:
+expressionPost:
     expressionMethods (name = (MINUSMINUS | PLUSPLUS) { print("Operator:" + $name.text); })*
 ;
 
