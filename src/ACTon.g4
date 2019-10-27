@@ -165,7 +165,7 @@ expressionNonAssignment:
 ;
 
 expressionNonAssignmentTemp:
-    (Q_MARK statementExpression COLON statementExpression)*
+    (Q_MARK { print("Operator:?:"); } statementExpression COLON statementExpression)*
 ;
 
 expressionAssignment:
