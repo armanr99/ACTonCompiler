@@ -105,10 +105,20 @@ otherStatement:
     statementLoop |
     statementPrint |
     statementBlock |
-    statementExpression SEMI |
     statementBreak SEMI |
     statementContinue SEMI |
+    statementExpression SEMI |
+    statementMsgHandler SEMI |
     SEMI
+;
+
+statementMsgHandler:
+    (name = (SELF | SENDER | ID)) DOT (method = ID) LPAR msgHandlerStatementArguments RPAR
+    {print("MsgHandlerCall:" + $name.text + "," + $method.text); }
+;
+
+msgHandlerStatementArguments:
+    (expression (COMMA expression)*)?
 ;
 
 statementPrint:
@@ -150,21 +160,12 @@ statementExpression:
 ;
 
 statementNonAssignment:
-    expressionOr | expressionMsgHandler
+    expressionOr
 ;
 
 statementAssignment:
     LPAR statementAssignment RPAR |
     ID '=' { print("Operator:="); } expressionOr
-;
-
-expressionMsgHandler:
-    (name = (SELF | SENDER | ID)) DOT (method = ID) LPAR expressionMsgHandlerArguments RPAR
-    {print("MsgHandlerCall:" + $name.text + "," + $method.text); }
-;
-
-expressionMsgHandlerArguments:
-    (expression (COMMA expression)*)?
 ;
 
 expression:
