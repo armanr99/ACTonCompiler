@@ -1,0 +1,97 @@
+actor BridgeController(5) {
+	
+	knownactors {
+		Train t1;
+		Train t2;
+	}
+
+	actorvars {
+		boolean isWaiting1;
+		boolean isWaiting2;
+		boolean signal1;
+		boolean signal2;
+	}
+
+	msghandler initial() {
+		signal1 = false;
+		signal2 = false;
+		isWaiting1 = false;
+		isWaiting2 = false;
+	}
+
+	msghandler Arrive() {
+		if(sender == t1){
+			if(signal2 == false) {
+				signal1 = true;
+				t1.YouMayPass();
+			}
+			else {
+				isWaiting1 = true;
+			}
+		}
+		else {
+			if(signal1 == false){
+				signal2 = true;
+				t2.YouMayPass();
+			}
+			else{
+				isWaiting2 = true;
+			}
+		}
+	}
+
+	msghandler Leave() {
+		if(sender == t1) {
+			signal1 = false;
+			if (isWaiting2){
+				signal2 = true;
+				t2.YouMayPass();
+				isWaiting2 = false;
+			}
+		} else {
+			signal2 = false;
+			if (isWaiting1) {
+				signal1 = true;
+				t1.YouMayPass();
+				isWaiting1 = false;
+			}
+		}
+	}
+}
+
+actor Train(3) {
+	knownactors {
+		BridgeController controller;
+	}
+
+	actorvars {
+		boolean onTheBridge;
+	}
+
+	msghandler initial() {
+		onTheBridge = false;
+		self.Passed();
+	}
+
+	msghandler YouMayPass() {
+		onTheBridge = true;
+		print("You may pass!");
+		self.Passed();
+	}
+
+	msghandler Passed() {
+		onTheBridge = false;
+		controller.Leave();
+		self.ReachBridge();
+	}
+
+	msghandler ReachBridge() {
+		controller.Arrive();
+	}
+}
+
+main {
+	Train train1(theController):();
+	Train train2(theController):();
+	BridgeController theController(train1, train2):();
+}
