@@ -66,6 +66,7 @@ varDeclaration:
 
 arrayDeclaration:
     INT ID LBRACK CONST_INT RBRACK
+    //TODO: vardec
 ;
 
 primitiveDeclaration:
@@ -173,35 +174,45 @@ expressionAssignment:
 ;
 
 expressionOr:
-    expressionAnd (OR { print("Operator:||"); } expressionAnd)*
+    { print("Operator:||"); } expressionAnd OR expressionOr |
+    expressionAnd
 ;
 
 expressionAnd:
-    expressionEq (AND { print("Operator:&&"); } expressionEq)*
+    { print("Operator:&&"); } expressionEq AND expressionAnd |
+    expressionEq
 ;
 
 expressionEq:
-    expressionCmp ((name = (EQUAL | NOT_EQUAL) { print("Operator:" + $name.text); })expressionCmp)*
+    { print("Operator:=="); } expressionCmp EQUAL expressionEq |
+    { print("Operator:!="); } expressionCmp NOT_EQUAL expressionEq |
+    expressionCmp
 ;
 
 expressionCmp:
-    expressionAdd ((name = (LT | GT) { print("Operator:" + $name.text); })expressionAdd)*
+    { print("Operator:<"); } expressionAdd LT expressionCmp |
+    { print("Operator:>"); } expressionAdd GT expressionCmp |
+    expressionAdd
 ;
 
 expressionAdd:
-    expressionMult ((name = (PLUS | MINUS) { print("Operator:" + $name.text); })expressionMult)*
+    { print("Operator:+"); } expressionMult PLUS expressionAdd |
+    { print("Operator:-"); } expressionMult MINUS expressionAdd |
+    expressionMult
 ;
 
 expressionMult:
-    expressionPre ((name = (STAR | SLASH | MODULO) { print("Operator:" + $name.text); })expressionPre)*
+    { print("Operator:*"); } expressionPre STAR expressionMult |
+    { print("Operator:/"); } expressionPre SLASH expressionMult |
+    { print("Operator:%"); } expressionPre MODULO expressionMult |
+    expressionPre
 ;
-
 expressionPre:
     (name = (NOT | MINUS | MINUSMINUS | PLUSPLUS) { print("Operator:" + $name.text); } )* expressionPost
 ;
 
 expressionPost:
-    expressionOther (name = (MINUSMINUS | PLUSPLUS) { print("Operator:" + $name.text); })*
+    expressionOther (name = (MINUSMINUS | PLUSPLUS) { print("Operator:" + $name.text); })* //TODO: print preorder
 ;
 
 expressionOther:
