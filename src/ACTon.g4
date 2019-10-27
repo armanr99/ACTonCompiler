@@ -170,7 +170,7 @@ expressionNonAssignmentTemp:
 
 expressionAssignment:
     LPAR expressionAssignment RPAR |
-    ID '=' { print("Operator:="); } expressionNonAssignment
+    ID '=' { print("Operator:="); } statementExpression
 ;
 
 expressionOr:
