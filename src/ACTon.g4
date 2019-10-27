@@ -221,6 +221,7 @@ expressionOther:
     TRUE |
     FALSE |
     SENDER |
+    SELF DOT ID |
     ID |
     ID LBRACK statementExpression RBRACK |
     LPAR statementExpression RPAR
