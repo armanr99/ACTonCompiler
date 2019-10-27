@@ -34,12 +34,12 @@ actorBody:
 knownActors:
     KNOWNACTORS
     LBRACE
-        knownActorDefinition*
+        (knownActorDefinition SEMI)*
     RBRACE
 ;
 
 knownActorDefinition:
-    ((type = ID) (name = ID) SEMI)
+    (type = ID) (name = ID)
     {print("KnownActor:" + $type.text + "," + $name.text);}
 ;
 
@@ -52,7 +52,7 @@ actorVars:
 
 initialDefinition:
     MSGHANDLER
-    INITIAL {print("MsgHanderDec:initial");} LPAR (varDeclaration (COMMA varDeclaration)*)? RPAR
+    INITIAL {print("MsgHanderDec:initial");} LPAR msghandlerArguments RPAR
     LBRACE
     (varDeclaration SEMI)*
     statements
@@ -64,12 +64,6 @@ varDeclaration:
     primitiveDeclaration
 ;
 
-varType:
-    STRING |
-    INT |
-    BOOLEAN
-;
-
 arrayDeclaration:
     INT ID LBRACK CONST_INT RBRACK
 ;
@@ -79,13 +73,23 @@ primitiveDeclaration:
     { print("VarDec:" + $varType.text + "," + $name.text); }
 ;
 
+varType:
+    STRING |
+    INT |
+    BOOLEAN
+;
+
 msghandlerDefinition:
     MSGHANDLER
-    (name = ID) {print("MsgHanderDec:" + $name.text);} LPAR (varDeclaration (COMMA varDeclaration)*)? RPAR
+    (name = ID) {print("MsgHanderDec:" + $name.text);} LPAR msghandlerArguments RPAR
     LBRACE
     (varDeclaration SEMI)*
     statements
     RBRACE
+;
+
+msghandlerArguments:
+    (varDeclaration (COMMA varDeclaration)*)?
 ;
 
 statements:
@@ -93,63 +97,74 @@ statements:
 ;
 
 statement:
-    matchedStatement |
-    openStatement
+    statementMatched |
+    statementOpen
 ;
 
 otherStatement:
-    blockStatement |
-    expressionStatement SEMI |
-    loopStatement |
-    printStatement |
-    BREAK SEMI |
-    CONTINUE SEMI |
+    statementLoop |
+    statementPrint |
+    statementBlock |
+    statementExpression SEMI |
+    statementBreak SEMI |
+    statementContinue SEMI |
     SEMI
 ;
 
-printStatement:
-    PRINT LPAR { print("Built-in:Print"); } expressionStatement RPAR SEMI
+statementPrint:
+    PRINT LPAR { print("Built-in:Print"); } statementExpression RPAR SEMI
 ;
 
-matchedStatement:
-    IF { print("Conditional:if"); } LPAR expressionStatement RPAR matchedStatement ELSE { print("Conditional:else"); } matchedStatement |
+statementBreak:
+    BREAK
+;
+
+statementContinue:
+    CONTINUE
+;
+
+statementMatched:
+    IF { print("Conditional:if"); } LPAR statementExpression RPAR statementMatched ELSE { print("Conditional:else"); } statementMatched |
     otherStatement
 ;
 
-openStatement:
-    IF { print("Conditional:if"); } LPAR expressionStatement RPAR statement |
-    IF { print("Conditional:if"); } LPAR expressionStatement RPAR matchedStatement ELSE { print("Conditional:else"); } openStatement
+statementOpen:
+    IF { print("Conditional:if"); } LPAR statementExpression RPAR statement |
+    IF { print("Conditional:if"); } LPAR statementExpression RPAR statementMatched ELSE { print("Conditional:else"); } statementOpen
 ;
 
-loopStatement:
-    FOR { print("Loop: for"); } LPAR assignmentStatement? SEMI expressionStatement? SEMI assignmentStatement? RPAR
-//    LBRACE //Bug when deleting lbrace and rbraces
+statementLoop:
+    FOR { print("Loop: for"); } LPAR statementAssignment? SEMI statementExpression? SEMI statementAssignment? RPAR
         statements
-//    RBRACE
 ;
 
-blockStatement:
+statementBlock:
     LBRACE
     statements
     RBRACE
 ;
 
-expressionStatement:
-    normalStatement |
-    assignmentStatement
+statementExpression:
+    statementNonAssignment |
+    statementAssignment
 ;
 
-normalStatement:
-    expressionOr | expressionMethods
+statementNonAssignment:
+    expressionOr | expressionMsgHandler
 ;
 
-//expressionTernary:
-//    expressionStatement Q_MARK expressionStatement COLON expressionStatement
-//;
-
-assignmentStatement:
-    LPAR assignmentStatement RPAR |
+statementAssignment:
+    LPAR statementAssignment RPAR |
     ID '=' { print("Operator:="); } expressionOr
+;
+
+expressionMsgHandler:
+    (name = (SELF | SENDER | ID)) DOT (method = ID) LPAR expressionMsgHandlerArguments RPAR
+    {print("MsgHandlerCall:" + $name.text + "," + $method.text); }
+;
+
+expressionMsgHandlerArguments:
+    (expression (COMMA expression)*)?
 ;
 
 expression:
@@ -188,15 +203,6 @@ expressionPost:
     expressionOther (name = (MINUSMINUS | PLUSPLUS) { print("Operator:" + $name.text); })*
 ;
 
-expressionMethods:
-    ((name = (SELF | SENDER | ID)) (method = expressionMethodsTemp) {print("MsgHandlerCall:" + $name.text + "," + $method.str); } )
-;
-
-expressionMethodsTemp returns [String str]:
-    DOT (name = ID) LPAR (expression (COMMA expression)*)? RPAR
-    { $str = $name.text; }
-;
-
 expressionOther:
     CONST_INT |
     CONST_STRING |
@@ -218,26 +224,31 @@ actorDeclarations:
     (actorDeclaration SEMI)*
 ;
 
-actorDeclaration returns [List <String> strs]
+actorDeclaration
     @init
     {
-        $strs = new ArrayList<>();
+        List <String> knowns;
+        knowns = new ArrayList<>();
     }
     :
     (type = ID) (name = ID)
     LPAR
-    ((known = ID) {$strs.add($known.text);} (COMMA (known_other = ID) {$strs.add($known_other.text);})*)?
+    ((known = ID) {knowns.add($known.text);} (COMMA (known_other = ID) {knowns.add($known_other.text);})*)?
     RPAR
     COLON
     {
         String message = "ActorInstantiation:" + $type.text + "," + $name.text;
-        for(String str : $strs)
-            message += ("," + str);
+        for(String known : knowns)
+            message += ("," + known);
         print(message);
     }
     LPAR
-    (expression (COMMA expression)*)?
+    actorDeclarationArguments
     RPAR
+;
+
+actorDeclarationArguments:
+    (expression (COMMA expression)*)?
 ;
 
 //Reserved keywords
