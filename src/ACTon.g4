@@ -123,7 +123,7 @@ msgHandlerStatementArguments:
 ;
 
 statementPrint:
-    PRINT LPAR { print("Built-in:Print"); } statementExpression RPAR SEMI
+    PRINT { print("Built-in:Print"); } LPAR statementExpression RPAR SEMI
 ;
 
 statementBreak:
@@ -145,7 +145,7 @@ statementOpen:
 ;
 
 statementLoop:
-    FOR { print("Loop: for"); } LPAR expressionAssignment? SEMI statementExpression? SEMI expressionAssignment? RPAR
+    FOR { print("Loop:for"); } LPAR expressionAssignment? SEMI statementExpression? SEMI expressionAssignment? RPAR
         statements
 ;
 
