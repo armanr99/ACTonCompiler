@@ -66,7 +66,7 @@ varDeclaration:
 
 arrayDeclaration:
     INT (name = ID) LBRACK CONST_INT RBRACK
-    { print("int[]" + $name); }
+    { print("int[]" + $name.text); }
 ;
 
 primitiveDeclaration:
