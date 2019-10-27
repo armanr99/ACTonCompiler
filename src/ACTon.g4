@@ -160,12 +160,16 @@ statementExpression:
 ;
 
 expressionNonAssignment:
-    expressionOr
+    expressionOr expressionNonAssignmentTemp
+;
+
+expressionNonAssignmentTemp:
+    (Q_MARK statementExpression COLON statementExpression)*
 ;
 
 expressionAssignment:
     LPAR expressionAssignment RPAR |
-    ID '=' { print("Operator:="); } expressionOr
+    ID '=' { print("Operator:="); } expressionNonAssignment
 ;
 
 expressionOr:
