@@ -13,7 +13,7 @@ grammar ACTon;
 }
 
 acton:
-    actorDefinition+ main
+    actorDefinition+ main EOF
 ;
 
 actorDefinition:
