@@ -13,16 +13,45 @@ import main.ast.node.statement.*;
 import main.symbolTable.*;
 import main.symbolTable.itemException.*;
 import main.symbolTable.symbolTableVariableItem.*;
-
-
+import java.util.HashSet;
+import java.util.List;
+import java.util.Collections;
 import java.util.ArrayList;
 
 public class VisitorImpl implements Visitor {
+
+    ArrayList<String> preOrder = new ArrayList<String>();
+    HashSet<String> errors = new HashSet<String>();
+
+    boolean secondPass = false;
+    int actorTempCount = 0;
 
     public void printPreOrder() {
         for(String node : preOrder) {
             System.out.println(node);
         }
+    }
+
+    public void check(Program program) {
+        visit(program);
+        if(hasErrors()) {
+            printErrors();
+        } else {
+            printPreOrder();
+        }
+    }
+
+    public void printErrors() {
+        List<String> sortedErrors = new ArrayList<String>(errors);
+        Collections.sort(sortedErrors);
+
+        for(String error : sortedErrors) {
+            System.out.println(error);
+        }
+    }
+
+    public boolean hasErrors() {
+        return (errors.size() > 0);
     }
 
     @Override
@@ -53,6 +82,7 @@ public class VisitorImpl implements Visitor {
             SymbolTable.top.put(symbolTableActorItem);
         } catch(ItemAlreadyExistsException e) {
             //TODO: handle actor existing
+
         }
 
         SymbolTable actorSymbolTable = new SymbolTable(SymbolTable.top, ""); //TODO: name?
