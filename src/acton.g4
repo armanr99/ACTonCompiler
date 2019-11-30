@@ -19,11 +19,8 @@ grammar acton;
 
 @members
 {
-    void setNodeLine(Node node, int line)
-    {
+    void setNodeLine(Node node, int line) {
         node.setLine(line);
-        System.out.println(node.toString());
-        System.out.println(line);
     }
 }
 
