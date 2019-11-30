@@ -17,6 +17,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Collections;
 import java.util.ArrayList;
+import main.ast.type.*;
+import main.ast.type.arrayType.*;
 
 public class VisitorImpl implements Visitor {
 
@@ -63,10 +65,17 @@ public class VisitorImpl implements Visitor {
         errors.add(error);
     }
 
-    public void AddQueueSizeError(ActorDeclaration actorDeclaration) {
+    public void addQueueSizeError(ActorDeclaration actorDeclaration) {
         String error = "Line:";
         error += actorDeclaration.getLine();
         error += ":Queue size must be positive";
+        errors.add(error);
+    }
+
+    public void addArraySizeError(VarDeclaration varDeclaration) {
+        String error = "Line:";
+        error += varDeclaration.getLine();
+        error += ":Array size must be positive";
         errors.add(error);
     }
 
@@ -128,7 +137,7 @@ public class VisitorImpl implements Visitor {
         if(!secondPass) {
             int actorQueueSize = actorDeclaration.getQueueSize();
             if(actorQueueSize <= 0) {
-                AddQueueSizeError(actorDeclaration);
+                addQueueSizeError(actorDeclaration);
             }
         }
 
@@ -218,6 +227,15 @@ public class VisitorImpl implements Visitor {
     @Override
     public void visit(VarDeclaration varDeclaration) {
         preOrder.add(varDeclaration.toString());
+
+        if(!secondPass) {
+            Type varType = varDeclaration.getType();
+            if(varType instanceof ArrayType) {
+                if(((ArrayType) varType).getSize() <= 0) {
+                    addArraySizeError(varDeclaration);
+                }
+            }
+        }
 
         Identifier varIdentifier = varDeclaration.getIdentifier();
         varIdentifier.accept(this);
