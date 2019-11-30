@@ -54,9 +54,17 @@ public class VisitorImpl implements Visitor {
 
     }
 
+    private int getErrorLine(String error) {
+        String line = "";
+        for(int i = 5; (i < error.length() && error.charAt(i) != ':'); i++) {
+            line += error.charAt(i);
+        }
+        return Integer.parseInt(line);
+    }
+
     public void printErrors() {
         List<String> sortedErrors = new ArrayList<String>(errors);
-        Collections.sort(sortedErrors);
+        sortedErrors.sort(Comparator.comparingInt(this::getErrorLine));
 
         for(String error : sortedErrors) {
             System.out.println(error);
