@@ -133,16 +133,15 @@ public class VisitorImpl implements Visitor {
         }
     }
 
-    private void handleVariableItemSecondPass(SymbolTableVariableItem variableItem, VarDeclaration varDeclaration) {
-        String actorNameStr = SymbolTable.top.getName();
-        String actorKey = getActorKey(actorNameStr);
+    private void handleVariableItemSecondPass(SymbolTableVariableItem variableItem, VarDeclaration varDeclaration, String actorName) {
+        String actorKey = getActorKey(actorName);
         SymbolTableItem actorItem;
 
         try {
             actorItem = SymbolTable.root.get(actorKey);
             HashSet<String> visited = new HashSet<String>();
 
-            visited.add(actorNameStr);
+            visited.add(actorName);
             String parent = ((SymbolTableActorItem) actorItem).getParentName();
 
             while(parent != null && !visited.contains(parent)) {
@@ -236,7 +235,7 @@ public class VisitorImpl implements Visitor {
             if(firstPass) {
                 handleVariableItemFirstPass(symbolTableKnownActorItem, knownActor);
             } else if(secondPass) {
-                handleVariableItemSecondPass(symbolTableKnownActorItem, knownActor);
+                handleVariableItemSecondPass(symbolTableKnownActorItem, knownActor, actorDeclaration.getName().getName());
             }
 
             knownActor.accept(this);
@@ -248,7 +247,7 @@ public class VisitorImpl implements Visitor {
             if(firstPass) {
                 handleVariableItemFirstPass(symbolTableActorVariableItem, actorVar);
             } else if (secondPass) {
-                handleVariableItemSecondPass(symbolTableActorVariableItem, actorVar);
+                handleVariableItemSecondPass(symbolTableActorVariableItem, actorVar, actorDeclaration.getName().getName());
             }
             actorVar.accept(this);
         }
@@ -280,7 +279,7 @@ public class VisitorImpl implements Visitor {
             }
         }
 
-        SymbolTable handlerSymbolTable = new SymbolTable(SymbolTable.top, ""); //TODO: name?
+        SymbolTable handlerSymbolTable = new SymbolTable(SymbolTable.top, SymbolTable.top.getName());
         symbolTableHandlerItem.setHandlerSymbolTable(handlerSymbolTable);
         SymbolTable.push(handlerSymbolTable);
 
@@ -291,11 +290,9 @@ public class VisitorImpl implements Visitor {
         for(VarDeclaration arg : handlerArgs) {
             SymbolTableHandlerArgumentItem symbolTableHandlerArgumentItem = new SymbolTableHandlerArgumentItem(arg);
             if(firstPass) {
-                try {
-                    SymbolTable.top.put(symbolTableHandlerArgumentItem);
-                } catch(ItemAlreadyExistsException e) {
-                    //TODO: handle variable existing
-                }
+                handleVariableItemFirstPass(symbolTableHandlerArgumentItem, arg);
+            } else if(secondPass) {
+                handleVariableItemSecondPass(symbolTableHandlerArgumentItem, arg, SymbolTable.top.getName());
             }
             arg.accept(this);
         }
