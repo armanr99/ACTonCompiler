@@ -56,11 +56,11 @@ public class VisitorImpl implements Visitor {
         return (errors.size() > 0);
     }
 
-    public void addActorRedifinitionError(ActorDeclaration actorDeclaration) { //TODO: Redfine vs Redefine!
+    public void addActorRedefinitionError(ActorDeclaration actorDeclaration) {
         String error = "Line:";
         error += actorDeclaration.getLine();
         error += ":";
-        error += "Redifinition of actor ";
+        error += "Redefinition of actor ";
         error += actorDeclaration.getName().getName();
         errors.add(error);
     }
@@ -107,7 +107,7 @@ public class VisitorImpl implements Visitor {
             SymbolTable.top.put(symbolTableActorItem);
         } catch(ItemAlreadyExistsException e) {
             if(!secondPass) {
-                addActorRedifinitionError(actorDeclaration);
+                addActorRedefinitionError(actorDeclaration);
                 while(true) {
                     try {
                         String newName = symbolTableActorItem.getKey() + actorTempCount;
