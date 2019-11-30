@@ -13,10 +13,9 @@ import main.ast.node.statement.*;
 import main.symbolTable.*;
 import main.symbolTable.itemException.*;
 import main.symbolTable.symbolTableVariableItem.*;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Collections;
-import java.util.ArrayList;
+
+import java.util.*;
+
 import main.ast.type.*;
 import main.ast.type.arrayType.*;
 
@@ -26,6 +25,7 @@ public class VisitorImpl implements Visitor {
     HashSet<String> errors = new HashSet<String>();
 
     boolean firstPass = true;
+    boolean secondPass = false;
     int actorTempCount = 0;
 
     public void printPreOrder() {
@@ -35,13 +35,23 @@ public class VisitorImpl implements Visitor {
     }
 
     public void check(Program program) {
+        SymbolTable globalSymbolTable = new SymbolTable();
+        SymbolTable.push(globalSymbolTable);
+        SymbolTable.root = globalSymbolTable;
+
         visit(program);
         firstPass = false;
+        secondPass = true;
+        visit(program);
+        secondPass = false;
+
         if(hasErrors()) {
             printErrors();
-        } else {
-            printPreOrder();
         }
+//        else {
+//            printPreOrder();
+//        }
+
     }
 
     public void printErrors() {
@@ -80,13 +90,25 @@ public class VisitorImpl implements Visitor {
         errors.add(error);
     }
 
+    public void addVarRedefinitionError(VarDeclaration varDeclaration) {
+        String error = "Line:";
+        error += varDeclaration.getLine();
+        error += ":Redefinition of variable ";
+        error += varDeclaration.getIdentifier().getName();
+        errors.add(error);
+    }
+
+    public String getActorKey(String actorName) {
+        return (SymbolTableActorItem.STARTKEY + actorName);
+    }
+
+    public String getVariableKey(String actorName) {
+        return (SymbolTableVariableItem.STARTKEY + actorName);
+    }
+
     @Override
     public void visit(Program program) {
         preOrder.add(program.toString());
-
-        SymbolTable globalSymbolTable = new SymbolTable();
-        SymbolTable.push(globalSymbolTable);
-        SymbolTable.root = globalSymbolTable;
 
         ArrayList<ActorDeclaration> programActors = program.getActors();
         for(ActorDeclaration actorDec : programActors) {
@@ -124,7 +146,7 @@ public class VisitorImpl implements Visitor {
             }
         }
 
-        SymbolTable actorSymbolTable = new SymbolTable(SymbolTable.top, ""); //TODO: name?
+        SymbolTable actorSymbolTable = new SymbolTable(SymbolTable.top, actorDeclaration.getName().getName());
         symbolTableActorItem.setActorSymbolTable(actorSymbolTable);
         SymbolTable.push(actorSymbolTable);
 
@@ -146,21 +168,77 @@ public class VisitorImpl implements Visitor {
         ArrayList<VarDeclaration> actorKnownActors = actorDeclaration.getKnownActors();
         for(VarDeclaration knownActor : actorKnownActors) {
             SymbolTableKnownActorItem symbolTableKnownActorItem = new SymbolTableKnownActorItem(knownActor);
-            try {
-                SymbolTable.top.put(symbolTableKnownActorItem);
-            } catch(ItemAlreadyExistsException e) {
-                //TODO: handle variable existing
+            String knowActorItemKey = symbolTableKnownActorItem.getKey();
+
+            if(firstPass) {
+                try {
+                    SymbolTable.top.put(symbolTableKnownActorItem);
+                } catch(ItemAlreadyExistsException e) {
+                    addVarRedefinitionError(knownActor);
+                    while(true) {
+                        try {
+                            String newName = knowActorItemKey + actorTempCount;
+                            symbolTableKnownActorItem.setName(newName);
+                            SymbolTable.top.put(symbolTableKnownActorItem);
+                        } catch(ItemAlreadyExistsException e1) {
+                            actorTempCount++;
+                            continue;
+                        }
+                        break;
+                    }
+                }
+            } else if(secondPass) {
+                String actorNameStr = SymbolTable.top.getName();
+                String actorKey = getActorKey(actorNameStr);
+                SymbolTableItem actorItem;
+
+                try {
+                    actorItem = SymbolTable.root.get(actorKey);
+                    HashSet<String> visited = new HashSet<String>();
+
+                    visited.add(actorNameStr);
+                    String parent = ((SymbolTableActorItem) actorItem).getParentName();
+
+                    while(parent != null && !visited.contains(parent)) {
+                        String parentKey = getActorKey(parent);
+                        SymbolTableItem parentItem;
+
+                        try {
+                            parentItem = SymbolTable.root.get(parentKey);
+                            SymbolTable parentSymbolTable = ((SymbolTableActorItem) parentItem).getActorSymbolTable();
+                            try {
+                                parentSymbolTable.get(knowActorItemKey);
+                                addVarRedefinitionError(knownActor);
+                                break;
+                            } catch(ItemNotFoundException e2) {}
+
+                            visited.add(parent);
+                            parent = ((SymbolTableActorItem) parentItem).getParentName();
+                        } catch (ItemNotFoundException e1) {
+                            // Parent Not Found
+                        }
+                    }
+
+                } catch(ItemNotFoundException e) {
+                    // Actor Not Found
+                }
+
             }
+
             knownActor.accept(this);
         }
 
         ArrayList<VarDeclaration> actorVars = actorDeclaration.getActorVars();
         for(VarDeclaration actorVar : actorVars) {
             SymbolTableActorVariableItem symbolTableActorVariableItem = new SymbolTableActorVariableItem(actorVar);
-            try {
-                SymbolTable.top.put(symbolTableActorVariableItem);
-            } catch(ItemAlreadyExistsException e) {
-                //TODO: handle variable existing
+            if(firstPass) {
+                try {
+                    SymbolTable.top.put(symbolTableActorVariableItem);
+                } catch(ItemAlreadyExistsException e) {
+                    //TODO: handle variable existing
+                }
+            } else {
+
             }
             actorVar.accept(this);
         }
@@ -183,10 +261,13 @@ public class VisitorImpl implements Visitor {
         preOrder.add(handlerDeclaration.toString());
 
         SymbolTableHandlerItem symbolTableHandlerItem = new SymbolTableHandlerItem(handlerDeclaration);
-        try {
-            SymbolTable.top.put(symbolTableHandlerItem);
-        } catch(ItemAlreadyExistsException e) {
-            //TODO: handle handler existing
+
+        if(firstPass) {
+            try {
+                SymbolTable.top.put(symbolTableHandlerItem);
+            } catch(ItemAlreadyExistsException e) {
+                //TODO: handle handler existing
+            }
         }
 
         SymbolTable handlerSymbolTable = new SymbolTable(SymbolTable.top, ""); //TODO: name?
@@ -199,10 +280,12 @@ public class VisitorImpl implements Visitor {
         ArrayList<VarDeclaration> handlerArgs = handlerDeclaration.getArgs();
         for(VarDeclaration arg : handlerArgs) {
             SymbolTableHandlerArgumentItem symbolTableHandlerArgumentItem = new SymbolTableHandlerArgumentItem(arg);
-            try {
-                SymbolTable.top.put(symbolTableHandlerArgumentItem);
-            } catch(ItemAlreadyExistsException e) {
-                //TODO: handle variable existing
+            if(firstPass) {
+                try {
+                    SymbolTable.top.put(symbolTableHandlerArgumentItem);
+                } catch(ItemAlreadyExistsException e) {
+                    //TODO: handle variable existing
+                }
             }
             arg.accept(this);
         }
@@ -210,10 +293,12 @@ public class VisitorImpl implements Visitor {
         ArrayList<VarDeclaration> handlerLocalVars = handlerDeclaration.getLocalVars();
         for(VarDeclaration localVar : handlerLocalVars) {
             SymbolTableLocalVariableItem symbolTableLocalVariableItem = new SymbolTableLocalVariableItem(localVar);
-            try {
-                SymbolTable.top.put(symbolTableLocalVariableItem);
-            } catch(ItemAlreadyExistsException e) {
-                //TODO: handle variable existing
+            if(firstPass) {
+                try {
+                    SymbolTable.top.put(symbolTableLocalVariableItem);
+                } catch(ItemAlreadyExistsException e) {
+                    //TODO: handle variable existing
+                }
             }
             localVar.accept(this);
         }
