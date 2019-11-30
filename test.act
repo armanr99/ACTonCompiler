@@ -6,12 +6,15 @@ actor A(5) {
     actorvars {
         int i;
         boolean odd;
-	int x[10];
+		int x[10];
     }
     
     msghandler initial(int i2) {
         i = i2;
-        even = true;
+		i = a++;
+       	i = a--;
+       	i = --x;
+		even = true;
     }
     
     msghandler foo() {
