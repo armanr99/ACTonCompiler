@@ -19,8 +19,16 @@ import java.util.ArrayList;
 
 public class VisitorImpl implements Visitor {
 
+    public void printPreOrder() {
+        for(String node : preOrder) {
+            System.out.println(node);
+        }
+    }
+
     @Override
     public void visit(Program program) {
+        preOrder.add(program.toString());
+
         SymbolTable globalSymbolTable = new SymbolTable();
         SymbolTable.push(globalSymbolTable);
         SymbolTable.root = globalSymbolTable;
@@ -38,6 +46,8 @@ public class VisitorImpl implements Visitor {
 
     @Override
     public void visit(ActorDeclaration actorDeclaration) {
+        preOrder.add(actorDeclaration.toString());
+
         SymbolTableActorItem symbolTableActorItem = new SymbolTableActorItem(actorDeclaration);
         try {
             SymbolTable.top.put(symbolTableActorItem);
@@ -96,6 +106,8 @@ public class VisitorImpl implements Visitor {
 
     @Override
     public void visit(HandlerDeclaration handlerDeclaration) {
+        preOrder.add(handlerDeclaration.toString());
+
         SymbolTableHandlerItem symbolTableHandlerItem = new SymbolTableHandlerItem(handlerDeclaration);
         try {
             SymbolTable.top.put(symbolTableHandlerItem);
@@ -142,12 +154,16 @@ public class VisitorImpl implements Visitor {
 
     @Override
     public void visit(VarDeclaration varDeclaration) {
+        preOrder.add(varDeclaration.toString());
+
         Identifier varIdentifier = varDeclaration.getIdentifier();
         varIdentifier.accept(this);
     }
 
     @Override
     public void visit(Main mainActors) {
+        preOrder.add(mainActors.toString());
+
         ArrayList<ActorInstantiation> actorInstantiations = mainActors.getMainActors();
         for(ActorInstantiation actorInstantiation : actorInstantiations) {
             actorInstantiation.accept(this);
@@ -156,6 +172,8 @@ public class VisitorImpl implements Visitor {
 
     @Override
     public void visit(ActorInstantiation actorInstantiation) {
+        preOrder.add(actorInstantiation.toString());
+
         Identifier actorName = actorInstantiation.getIdentifier();
         actorName.accept(this);
 
@@ -172,12 +190,16 @@ public class VisitorImpl implements Visitor {
 
     @Override
     public void visit(UnaryExpression unaryExpression) {
+        preOrder.add(unaryExpression.toString());
+
         Expression operator = unaryExpression.getOperand();
         operator.accept(this);
     }
 
     @Override
     public void visit(BinaryExpression binaryExpression) {
+        preOrder.add(binaryExpression.toString());
+
         Expression left = binaryExpression.getLeft();
         left.accept(this);
 
@@ -187,6 +209,8 @@ public class VisitorImpl implements Visitor {
 
     @Override
     public void visit(ArrayCall arrayCall) {
+        preOrder.add(arrayCall.toString());
+
         Expression arrayInstance = arrayCall.getArrayInstance();
         arrayInstance.accept(this);
 
@@ -196,6 +220,8 @@ public class VisitorImpl implements Visitor {
 
     @Override
     public void visit(ActorVarAccess actorVarAccess) {
+        preOrder.add(actorVarAccess.toString());
+
         Self self = actorVarAccess.getSelf();
         self.accept(this);
 
@@ -205,36 +231,38 @@ public class VisitorImpl implements Visitor {
 
     @Override
     public void visit(Identifier identifier) {
-
+        preOrder.add(identifier.toString());
     }
 
     @Override
     public void visit(Self self) {
-
+        preOrder.add(self.toString());
     }
 
     @Override
     public void visit(Sender sender) {
-
+        preOrder.add(sender.toString());
     }
 
     @Override
     public void visit(BooleanValue value) {
-
+        preOrder.add(value.toString());
     }
 
     @Override
     public void visit(IntValue value) {
-
+        preOrder.add(value.toString());
     }
 
     @Override
     public void visit(StringValue value) {
-
+        preOrder.add(value.toString());
     }
 
     @Override
     public void visit(Block block) {
+        preOrder.add(block.toString());
+
         ArrayList<Statement> statements = block.getStatements();
         for(Statement statement : statements) {
             statement.accept(this);
@@ -243,6 +271,8 @@ public class VisitorImpl implements Visitor {
 
     @Override
     public void visit(Conditional conditional) {
+        preOrder.add(conditional.toString());
+
         Expression expression = conditional.getExpression();
         expression.accept(this);
 
@@ -257,6 +287,8 @@ public class VisitorImpl implements Visitor {
 
     @Override
     public void visit(For loop) {
+        preOrder.add(loop.toString());
+
         Assign initialize = loop.getInitialize();
         initialize.accept(this);
 
@@ -272,16 +304,18 @@ public class VisitorImpl implements Visitor {
 
     @Override
     public void visit(Break breakLoop) {
-
+        preOrder.add(breakLoop.toString());
     }
 
     @Override
     public void visit(Continue continueLoop) {
-
+        preOrder.add(continueLoop.toString());
     }
 
     @Override
     public void visit(MsgHandlerCall msgHandlerCall) {
+        preOrder.add(msgHandlerCall.toString());
+
         Expression instance = msgHandlerCall.getInstance();
         instance.accept(this);
 
@@ -296,12 +330,16 @@ public class VisitorImpl implements Visitor {
 
     @Override
     public void visit(Print print) {
+        preOrder.add(print.toString());
+
         Expression arg = print.getArg();
         arg.accept(this);
     }
 
     @Override
     public void visit(Assign assign) {
+        preOrder.add(assign.toString());
+
         Expression lValue = assign.getlValue();
         lValue.accept(this);
 

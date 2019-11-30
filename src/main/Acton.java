@@ -19,6 +19,7 @@ public class Acton {
         Program program = parser.program().p; /* assuming that the name of the Program ast node
                                                  that the program rule returns is p */
         VisitorImpl visitor = new VisitorImpl();
-        program.accept(visitor);
+        visitor.visit(program);
+        visitor.printPreOrder();
     }
 }

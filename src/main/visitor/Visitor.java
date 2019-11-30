@@ -13,8 +13,12 @@ import main.ast.node.expression.values.BooleanValue;
 import main.ast.node.expression.values.IntValue;
 import main.ast.node.expression.values.StringValue;
 import main.ast.node.statement.*;
+import java.util.ArrayList;
 
 public interface Visitor {
+    ArrayList<String> preOrder = new ArrayList<String>();
+
+    void printPreOrder();
 
     void visit (Program program);
 

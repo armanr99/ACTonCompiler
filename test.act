@@ -1,38 +1,57 @@
-actor A(5) {
+
+actor test extends test3 (9){
+
     knownactors {
-        A a;
+        child t1;
+        child t3;
+        child ty7;
     }
-    
+
     actorvars {
+        int x;
+        int y;
+        int z;
+    }
+
+    msghandler initial (int t,int a[5],string o){
+        self.x = t;
+        self.y = o;
+        self.z = a;
+    }
+
+    msghandler random() {
         int i;
-        boolean odd;
-		int x[10];
-    }
-    
-    msghandler initial(int i2) {
-        i = i2;
-		i = a++;
-       	i = a--;
-       	i = --x;
-		even = true;
-    }
-    
-    msghandler foo() {
-        if(odd == true){
-            print(i * i + i);
+        int j;
+        int sum;
+        for(i=0;i<7;i=i+1){
+            if(i==5){
+                print("hello wold\n");
+                for(j=0;j<i;j = j + 1){
+                    sum = sum + i * j;
+                }
+            }
         }
-        odd = !odd;
-        i = (i++);
     }
-    
-    msghandler bar() {
-	a.foo();
+
+    msghandler call() {
+        int i;
+        i = self.x;
+        sender.test(u*7);
+        if(t==u)
+            for( i =0 ;i!=k;k=u+1)
+                print("hello");
+
+        if(t)
+            if(763)
+                te = 8;
+            else
+                te = 9;
+        else
+            y = 0;
     }
-    
 }
 
 main {
     A a1(a2):(0);
     A a2(a1):(1);
 }
-
