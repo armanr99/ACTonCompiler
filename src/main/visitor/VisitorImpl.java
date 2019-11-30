@@ -67,7 +67,7 @@ public class VisitorImpl implements Visitor {
         return (errors.size() > 0);
     }
 
-    public void addActorRedefinitionError(ActorDeclaration actorDeclaration) {
+    private void addActorRedefinitionError(ActorDeclaration actorDeclaration) {
         String error = "Line:";
         error += actorDeclaration.getLine();
         error += ":";
@@ -76,21 +76,21 @@ public class VisitorImpl implements Visitor {
         errors.add(error);
     }
 
-    public void addQueueSizeError(ActorDeclaration actorDeclaration) {
+    private void addQueueSizeError(ActorDeclaration actorDeclaration) {
         String error = "Line:";
         error += actorDeclaration.getLine();
         error += ":Queue size must be positive";
         errors.add(error);
     }
 
-    public void addArraySizeError(VarDeclaration varDeclaration) {
+    private void addArraySizeError(VarDeclaration varDeclaration) {
         String error = "Line:";
         error += varDeclaration.getLine();
         error += ":Array size must be positive";
         errors.add(error);
     }
 
-    public void addVarRedefinitionError(VarDeclaration varDeclaration) {
+    private void addVarRedefinitionError(VarDeclaration varDeclaration) {
         String error = "Line:";
         error += varDeclaration.getLine();
         error += ":Redefinition of variable ";
@@ -98,12 +98,8 @@ public class VisitorImpl implements Visitor {
         errors.add(error);
     }
 
-    public String getActorKey(String actorName) {
+    private String getActorKey(String actorName) {
         return (SymbolTableActorItem.STARTKEY + actorName);
-    }
-
-    public String getVariableKey(String actorName) {
-        return (SymbolTableVariableItem.STARTKEY + actorName);
     }
 
     @Override
