@@ -110,6 +110,66 @@ public class VisitorImpl implements Visitor {
         return (SymbolTableActorItem.STARTKEY + actorName);
     }
 
+    private void handleVariableItemFirstPass(SymbolTableVariableItem variableItem, VarDeclaration varDeclaration) {
+        String variableItemKey = variableItem.getKey();
+
+        try {
+            SymbolTable.top.put(variableItem);
+        } catch(ItemAlreadyExistsException e) {
+            addVarRedefinitionError(varDeclaration);
+            int count = 1;
+
+            while(true) {
+                try {
+                    String newName = variableItemKey + count;
+                    variableItem.setName(newName);
+                    SymbolTable.top.put(variableItem);
+                } catch(ItemAlreadyExistsException e1) {
+                    count++;
+                    continue;
+                }
+                break;
+            }
+        }
+    }
+
+    private void handleVariableItemSecondPass(SymbolTableVariableItem variableItem, VarDeclaration varDeclaration) {
+        String actorNameStr = SymbolTable.top.getName();
+        String actorKey = getActorKey(actorNameStr);
+        SymbolTableItem actorItem;
+
+        try {
+            actorItem = SymbolTable.root.get(actorKey);
+            HashSet<String> visited = new HashSet<String>();
+
+            visited.add(actorNameStr);
+            String parent = ((SymbolTableActorItem) actorItem).getParentName();
+
+            while(parent != null && !visited.contains(parent)) {
+                String parentKey = getActorKey(parent);
+                SymbolTableItem parentItem;
+
+                try {
+                    parentItem = SymbolTable.root.get(parentKey);
+                    SymbolTable parentSymbolTable = ((SymbolTableActorItem) parentItem).getActorSymbolTable();
+                    try {
+                        parentSymbolTable.get(variableItem.getKey());
+                        addVarRedefinitionError(varDeclaration);
+                        break;
+                    } catch(ItemNotFoundException e2) {}
+
+                    visited.add(parent);
+                    parent = ((SymbolTableActorItem) parentItem).getParentName();
+                } catch (ItemNotFoundException e1) {
+                    // Parent Not Found
+                }
+            }
+
+        } catch(ItemNotFoundException e) {
+            // Actor Not Found
+        }
+    }
+
     @Override
     public void visit(Program program) {
         preOrder.add(program.toString());
@@ -172,61 +232,11 @@ public class VisitorImpl implements Visitor {
         ArrayList<VarDeclaration> actorKnownActors = actorDeclaration.getKnownActors();
         for(VarDeclaration knownActor : actorKnownActors) {
             SymbolTableKnownActorItem symbolTableKnownActorItem = new SymbolTableKnownActorItem(knownActor);
-            String knowActorItemKey = symbolTableKnownActorItem.getKey();
 
             if(firstPass) {
-                try {
-                    SymbolTable.top.put(symbolTableKnownActorItem);
-                } catch(ItemAlreadyExistsException e) {
-                    addVarRedefinitionError(knownActor);
-                    while(true) {
-                        try {
-                            String newName = knowActorItemKey + actorTempCount;
-                            symbolTableKnownActorItem.setName(newName);
-                            SymbolTable.top.put(symbolTableKnownActorItem);
-                        } catch(ItemAlreadyExistsException e1) {
-                            actorTempCount++;
-                            continue;
-                        }
-                        break;
-                    }
-                }
+                handleVariableItemFirstPass(symbolTableKnownActorItem, knownActor);
             } else if(secondPass) {
-                String actorNameStr = SymbolTable.top.getName();
-                String actorKey = getActorKey(actorNameStr);
-                SymbolTableItem actorItem;
-
-                try {
-                    actorItem = SymbolTable.root.get(actorKey);
-                    HashSet<String> visited = new HashSet<String>();
-
-                    visited.add(actorNameStr);
-                    String parent = ((SymbolTableActorItem) actorItem).getParentName();
-
-                    while(parent != null && !visited.contains(parent)) {
-                        String parentKey = getActorKey(parent);
-                        SymbolTableItem parentItem;
-
-                        try {
-                            parentItem = SymbolTable.root.get(parentKey);
-                            SymbolTable parentSymbolTable = ((SymbolTableActorItem) parentItem).getActorSymbolTable();
-                            try {
-                                parentSymbolTable.get(knowActorItemKey);
-                                addVarRedefinitionError(knownActor);
-                                break;
-                            } catch(ItemNotFoundException e2) {}
-
-                            visited.add(parent);
-                            parent = ((SymbolTableActorItem) parentItem).getParentName();
-                        } catch (ItemNotFoundException e1) {
-                            // Parent Not Found
-                        }
-                    }
-
-                } catch(ItemNotFoundException e) {
-                    // Actor Not Found
-                }
-
+                handleVariableItemSecondPass(symbolTableKnownActorItem, knownActor);
             }
 
             knownActor.accept(this);
