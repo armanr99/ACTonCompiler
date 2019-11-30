@@ -54,6 +54,16 @@ public class VisitorImpl implements Visitor {
         return (errors.size() > 0);
     }
 
+    public void addActorRedifinitionError(ActorDeclaration actorDeclaration) { //TODO: Redfine vs Redefine!
+        String error = "";
+        error += "Line:";
+        error += actorDeclaration.getLine();
+        error += ":";
+        error += "Redifinition of actor ";
+        error += actorDeclaration.getName().getName();
+        errors.add(error);
+    }
+
     @Override
     public void visit(Program program) {
         preOrder.add(program.toString());
@@ -81,8 +91,20 @@ public class VisitorImpl implements Visitor {
         try {
             SymbolTable.top.put(symbolTableActorItem);
         } catch(ItemAlreadyExistsException e) {
-            //TODO: handle actor existing
-
+            if(!secondPass) {
+                addActorRedifinitionError(actorDeclaration);
+                while(true) {
+                    try {
+                        String newName = symbolTableActorItem.getKey() + actorTempCount;
+                        symbolTableActorItem.setName(newName);
+                        SymbolTable.top.put(symbolTableActorItem);
+                    } catch(ItemAlreadyExistsException e1) {
+                        actorTempCount++;
+                        continue;
+                    }
+                    break;
+                }
+            }
         }
 
         SymbolTable actorSymbolTable = new SymbolTable(SymbolTable.top, ""); //TODO: name?
