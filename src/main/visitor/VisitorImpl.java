@@ -246,13 +246,9 @@ public class VisitorImpl implements Visitor {
         for(VarDeclaration actorVar : actorVars) {
             SymbolTableActorVariableItem symbolTableActorVariableItem = new SymbolTableActorVariableItem(actorVar);
             if(firstPass) {
-                try {
-                    SymbolTable.top.put(symbolTableActorVariableItem);
-                } catch(ItemAlreadyExistsException e) {
-                    //TODO: handle variable existing
-                }
-            } else {
-
+                handleVariableItemFirstPass(symbolTableActorVariableItem, actorVar);
+            } else if (secondPass) {
+                handleVariableItemSecondPass(symbolTableActorVariableItem, actorVar);
             }
             actorVar.accept(this);
         }
