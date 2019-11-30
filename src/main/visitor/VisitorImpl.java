@@ -103,10 +103,11 @@ public class VisitorImpl implements Visitor {
         preOrder.add(actorDeclaration.toString());
 
         SymbolTableActorItem symbolTableActorItem = new SymbolTableActorItem(actorDeclaration);
-        try {
-            SymbolTable.top.put(symbolTableActorItem);
-        } catch(ItemAlreadyExistsException e) {
-            if(!secondPass) {
+
+        if(!secondPass) {
+            try {
+                SymbolTable.top.put(symbolTableActorItem);
+            } catch(ItemAlreadyExistsException e) {
                 addActorRedefinitionError(actorDeclaration);
                 while(true) {
                     try {
