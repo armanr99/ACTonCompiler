@@ -25,7 +25,7 @@ public class VisitorImpl implements Visitor {
     ArrayList<String> preOrder = new ArrayList<String>();
     HashSet<String> errors = new HashSet<String>();
 
-    boolean secondPass = false;
+    boolean firstPass = true;
     int actorTempCount = 0;
 
     public void printPreOrder() {
@@ -36,6 +36,7 @@ public class VisitorImpl implements Visitor {
 
     public void check(Program program) {
         visit(program);
+        firstPass = false;
         if(hasErrors()) {
             printErrors();
         } else {
@@ -104,7 +105,7 @@ public class VisitorImpl implements Visitor {
 
         SymbolTableActorItem symbolTableActorItem = new SymbolTableActorItem(actorDeclaration);
 
-        if(!secondPass) {
+        if(firstPass) {
             try {
                 SymbolTable.top.put(symbolTableActorItem);
             } catch(ItemAlreadyExistsException e) {
@@ -135,7 +136,7 @@ public class VisitorImpl implements Visitor {
             parentName.accept(this); //TODO: check if null is valid
         }
 
-        if(!secondPass) {
+        if(firstPass) {
             int actorQueueSize = actorDeclaration.getQueueSize();
             if(actorQueueSize <= 0) {
                 addQueueSizeError(actorDeclaration);
@@ -229,7 +230,7 @@ public class VisitorImpl implements Visitor {
     public void visit(VarDeclaration varDeclaration) {
         preOrder.add(varDeclaration.toString());
 
-        if(!secondPass) {
+        if(firstPass) {
             Type varType = varDeclaration.getType();
             if(varType instanceof ArrayType) {
                 if(((ArrayType) varType).getSize() <= 0) {
