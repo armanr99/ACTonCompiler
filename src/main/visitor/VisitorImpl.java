@@ -55,12 +55,18 @@ public class VisitorImpl implements Visitor {
     }
 
     public void addActorRedifinitionError(ActorDeclaration actorDeclaration) { //TODO: Redfine vs Redefine!
-        String error = "";
-        error += "Line:";
+        String error = "Line:";
         error += actorDeclaration.getLine();
         error += ":";
         error += "Redifinition of actor ";
         error += actorDeclaration.getName().getName();
+        errors.add(error);
+    }
+
+    public void AddQueueSizeError(ActorDeclaration actorDeclaration) {
+        String error = "Line:";
+        error += actorDeclaration.getLine();
+        error += ":Queue size must be positive";
         errors.add(error);
     }
 
@@ -119,7 +125,12 @@ public class VisitorImpl implements Visitor {
             parentName.accept(this); //TODO: check if null is valid
         }
 
-        int actorQueueSize = actorDeclaration.getQueueSize(); //TODO: check queue size
+        if(!secondPass) {
+            int actorQueueSize = actorDeclaration.getQueueSize();
+            if(actorQueueSize <= 0) {
+                AddQueueSizeError(actorDeclaration);
+            }
+        }
 
         ArrayList<VarDeclaration> actorKnownActors = actorDeclaration.getKnownActors();
         for(VarDeclaration knownActor : actorKnownActors) {
