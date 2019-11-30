@@ -1,0 +1,35 @@
+actor A(5) {
+    knownactors {
+        A a;
+    }
+    
+    actorvars {
+        int i;
+        boolean odd;
+	int x[10];
+    }
+    
+    msghandler initial(int i2) {
+        i = i2;
+        even = true;
+    }
+    
+    msghandler foo() {
+        if(odd == true){
+            print(i * i + i);
+        }
+        odd = !odd;
+        i = (i++);
+    }
+    
+    msghandler bar() {
+	a.foo();
+    }
+    
+}
+
+main {
+    A a1(a2):(0);
+    A a2(a1):(1);
+}
+

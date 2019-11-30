@@ -10,201 +10,353 @@ grammar acton;
     import main.ast.node.expression.*;
     import main.ast.node.expression.operators.*;
     import main.ast.node.expression.values.*;
-    import main.ast.type.primitiveType.*;
     import main.ast.type.*;
+    import main.ast.type.actorType.*;
+    import main.ast.type.arrayType.*;
+    import main.ast.type.primitiveType.*;
+    import java.util.ArrayList;
 }
 
-program
-    : (actorDeclaration)+ mainDeclaration
+program returns [Program p]
+    :
+        { $p = new Program(); }
+        (actorDeclaration { $p.addActor($actorDeclaration.synDec); } )+
+        mainDeclaration { $p.setMain($mainDeclaration.synNode); }
     ;
 
-actorDeclaration
-    :   ACTOR identifier (EXTENDS identifier)? LPAREN INTVAL RPAREN
+actorDeclaration returns [ActorDeclaration synDec]
+    :   ACTOR actorName = identifier
+        { $synDec = new ActorDeclaration($actorName.synExpr); }
+
+        (EXTENDS parentName = identifier { $synDec.setParentName($parentName.synExpr); })?
+        LPAREN queueSize = INTVAL RPAREN { $synDec.setQueueSize($queueSize.int); }
+
         LBRACE
 
-        (KNOWNACTORS
+        (
+        KNOWNACTORS
         LBRACE
-            (identifier identifier SEMICOLON)*
-        RBRACE)
+            (
+            knownTypeName = identifier knownName = identifier SEMICOLON
+            {
+                Type knownType = new ActorType($knownTypeName.synExpr);
+                VarDeclaration knownVarDec = new VarDeclaration($knownName.synExpr, knownType);
+                $synDec.addKnownActor(knownVarDec);
+            }
+            )*
+        RBRACE
+        )
 
-        (ACTORVARS
+        (
+        ACTORVARS
         LBRACE
-            varDeclarations
-        RBRACE)
+            varDeclarations { $synDec.setActorVars($varDeclarations.varDecs); }
+        RBRACE
+        )
 
-        (initHandlerDeclaration)?
-        (msgHandlerDeclaration)*
+        (initHandlerDeclaration { $synDec.setInitHandler($initHandlerDeclaration.synHandlerDec); } )?
+        (msgHandlerDeclaration { $synDec.addMsgHandler($msgHandlerDeclaration.synHandlerDec); } )*
 
         RBRACE
     ;
 
-mainDeclaration
+mainDeclaration returns [Main synNode]
+    @init
+    {
+        $synNode = new Main();
+    }
     :   MAIN
     	LBRACE
-        actorInstantiation*
+        (actorInstantiation { $synNode.addActorInstantiation($actorInstantiation.synVarDec); } )*
     	RBRACE
     ;
 
-actorInstantiation
-    :	identifier identifier
-     	LPAREN (identifier(COMMA identifier)* | ) RPAREN
-     	COLON LPAREN expressionList RPAREN SEMICOLON
+actorInstantiation returns [ActorInstantiation synVarDec]
+    :	type = identifier name = identifier
+        { $synVarDec = new ActorInstantiation(new ActorType($type.synExpr), $name.synExpr); }
+     	LPAREN
+     	(
+     	actor1 = identifier { $synVarDec.addKnownActor($actor1.synExpr); }
+     	(COMMA actor2 = identifier { $synVarDec.addKnownActor($actor2.synExpr); } )*
+     	|
+     	)
+     	RPAREN
+     	COLON
+     	LPAREN expressionList { $synVarDec.setInitArgs($expressionList.argExprs); } RPAREN
+     	SEMICOLON
     ;
 
-initHandlerDeclaration
-    :	MSGHANDLER INITIAL LPAREN argDeclarations RPAREN
+initHandlerDeclaration returns [InitHandlerDeclaration synHandlerDec]
+    :	MSGHANDLER name = INITIAL
+        { $synHandlerDec = new InitHandlerDeclaration( new Identifier($name.text) ); }
+        LPAREN argDeclarations RPAREN { $synHandlerDec.setArgs($argDeclarations.argDecs); }
      	LBRACE
-     	varDeclarations
-     	(statement)*
+     	varDeclarations { $synHandlerDec.setLocalVars($varDeclarations.varDecs); }
+     	(statement { $synHandlerDec.addStatement($statement.synStmt); } )*
      	RBRACE
     ;
 
-msgHandlerDeclaration
-    :	MSGHANDLER identifier LPAREN argDeclarations RPAREN
+msgHandlerDeclaration returns [MsgHandlerDeclaration synHandlerDec]
+    :	MSGHANDLER name = identifier
+        { $synHandlerDec = new MsgHandlerDeclaration( $name.synExpr ); }
+        LPAREN argDeclarations RPAREN { $synHandlerDec.setArgs($argDeclarations.argDecs); }
        	LBRACE
-       	varDeclarations
-       	(statement)*
+       	varDeclarations { $synHandlerDec.setLocalVars($varDeclarations.varDecs); }
+       	(statement { $synHandlerDec.addStatement($statement.synStmt); } )*
        	RBRACE
     ;
 
-argDeclarations
-    :	varDeclaration(COMMA varDeclaration)* |
+argDeclarations returns [ArrayList<VarDeclaration> argDecs]
+    @init
+    {
+        $argDecs = new ArrayList<>();
+    }
+    :	varDec1 = varDeclaration { $argDecs.add($varDec1.synVarDec); }
+        (COMMA varDec2 = varDeclaration { $argDecs.add($varDec2.synVarDec); })*
+        |
     ;
 
-varDeclarations
-    :	(varDeclaration SEMICOLON)*
+varDeclarations returns [ArrayList<VarDeclaration> varDecs]
+    @init
+    {
+        $varDecs = new ArrayList<>();
+    }
+    :
+        (varDeclaration SEMICOLON { $varDecs.add($varDeclaration.synVarDec); } )*
     ;
 
-varDeclaration
-    :	INT identifier
-    |   STRING identifier
-    |   BOOLEAN identifier
-    |   INT identifier LBRACKET INTVAL RBRACKET
+varDeclaration returns [VarDeclaration synVarDec]
+    :	INT identifier { $synVarDec = new VarDeclaration($identifier.synExpr, new IntType()); }
+    |   STRING identifier { $synVarDec = new VarDeclaration($identifier.synExpr, new StringType()); }
+    |   BOOLEAN identifier { $synVarDec = new VarDeclaration($identifier.synExpr, new BooleanType()); }
+    |   INT identifier LBRACKET size = INTVAL RBRACKET { $synVarDec = new VarDeclaration($identifier.synExpr, new ArrayType($size.int)); }
     ;
 
-statement
-    :	blockStmt
-    | 	printStmt
-    |  	assignStmt
-    |  	forStmt
-    |  	ifStmt
-    |  	continueStmt
-    |  	breakStmt
-    |  	msgHandlerCall
+statement returns [Statement synStmt]
+    :	blockStmt { $synStmt = $blockStmt.synStmt; }
+    | 	printStmt { $synStmt = $printStmt.synStmt; }
+    |  	assignStmt { $synStmt = $assignStmt.synStmt; }
+    |  	forStmt { $synStmt = $forStmt.synStmt; }
+    |  	ifStmt { $synStmt = $ifStmt.synStmt; }
+    |  	continueStmt { $synStmt = $continueStmt.synStmt; }
+    |  	breakStmt { $synStmt = $breakStmt.synStmt; }
+    |  	msgHandlerCall { $synStmt = $msgHandlerCall.synStmt; }
     ;
 
-blockStmt
-    : 	LBRACE (statement)* RBRACE
+blockStmt returns [Block synStmt]
+    @init
+    {
+        $synStmt = new Block();
+    }
+    : 	LBRACE
+        (statement { $synStmt.addStatement($statement.synStmt); })*
+        RBRACE
     ;
 
-printStmt
-    : 	PRINT LPAREN expression RPAREN SEMICOLON
+printStmt returns [Print synStmt]
+    : 	PRINT LPAREN expression RPAREN SEMICOLON { $synStmt = new Print($expression.synExpr); }
     ;
 
-assignStmt
-    :    assignment SEMICOLON
+assignStmt returns [Assign synStmt]
+    :    assignment SEMICOLON { $synStmt = $assignment.synStmt; }
     ;
 
-assignment
-    :   orExpression ASSIGN expression
+assignment returns [Assign synStmt]
+    :   orExpression ASSIGN expression { $synStmt = new Assign($orExpression.synExpr, $expression.synExpr); }
     ;
 
-forStmt
-    : 	FOR LPAREN (assignment)? SEMICOLON (expression)? SEMICOLON (assignment)? RPAREN statement
+forStmt returns [For synStmt]
+    @init
+    {
+        $synStmt = new For();
+    }
+    : 	FOR
+        LPAREN
+        (assign1 = assignment { $synStmt.setInitialize($assign1.synStmt); } )? SEMICOLON
+        (expression { $synStmt.setCondition($expression.synExpr); } )? SEMICOLON
+        (assign2 = assignment { $synStmt.setUpdate($assign2.synStmt); } )?
+        RPAREN
+        statement { $synStmt.setBody($statement.synStmt); }
     ;
 
-ifStmt
+ifStmt returns [Conditional synStmt]
     :   IF LPAREN expression RPAREN statement elseStmt
+        {
+            $synStmt = new Conditional($expression.synExpr, $statement.synStmt);
+            if($elseStmt.synStmt != null)
+                $synStmt.setElseBody($elseStmt.synStmt);
+        }
     ;
 
-elseStmt
-    : ELSE statement |
+elseStmt returns [Statement synStmt]
+    : ELSE statement { $synStmt = $statement.synStmt; }
+    | { $synStmt = null; }
     ;
 
-continueStmt
-    : 	CONTINUE SEMICOLON
+continueStmt returns [Continue synStmt]
+    : 	CONTINUE SEMICOLON { $synStmt = new Continue(); }
     ;
 
-breakStmt
-    : 	BREAK SEMICOLON
+breakStmt returns [Break synStmt]
+    : 	BREAK SEMICOLON { $synStmt = new Break(); }
     ;
 
-msgHandlerCall
-    :   (identifier | SELF | SENDER) DOT
-        identifier LPAREN expressionList RPAREN SEMICOLON
+msgHandlerCall returns [MsgHandlerCall synStmt] locals [Expression instance]
+    :   (
+        identifier { $instance = $identifier.synExpr; }
+        | SELF { $instance = new Self(); }
+        | SENDER { $instance = new Sender(); }
+        )
+        DOT
+        name = identifier { $synStmt = new MsgHandlerCall($instance, $name.synExpr); }
+        LPAREN
+        expressionList { $synStmt.setArgs($expressionList.argExprs); }
+        RPAREN
+        SEMICOLON
     ;
 
-expression
-    :	orExpression (ASSIGN expression)?
+expression returns [Expression synExpr]
+    :	e1 = orExpression { $synExpr = $e1.synExpr; }
+        (
+        ASSIGN
+        e2 = expression
+        { $synExpr = new BinaryExpression($synExpr, $e2.synExpr, BinaryOperator.assign); }
+        )?
     ;
 
-orExpression
-    :	andExpression (OR andExpression)*
+orExpression returns [Expression synExpr]
+    :	e1 = andExpression { $synExpr = $e1.synExpr; }
+        (
+        OR
+        e2 = andExpression
+        { $synExpr = new BinaryExpression($synExpr, $e2.synExpr, BinaryOperator.or); }
+        )*
     ;
 
-andExpression
-    :	equalityExpression (AND equalityExpression)*
+andExpression returns [Expression synExpr]
+    :	e1 = equalityExpression { $synExpr = $e1.synExpr; }
+        (
+        AND
+        e2 = equalityExpression
+        { $synExpr = new BinaryExpression($synExpr, $e2.synExpr, BinaryOperator.and); }
+        )*
     ;
 
-equalityExpression
-    :	relationalExpression ( (EQ | NEQ) relationalExpression)*
+equalityExpression returns [Expression synExpr]
+    :	e1 = relationalExpression { $synExpr = $e1.synExpr; }
+        (
+        operatorName = (EQ | NEQ)
+        e2 = relationalExpression
+        {
+            BinaryOperator operator = ($operatorName.text == "EQ" ? BinaryOperator.eq : BinaryOperator.neq);
+            $synExpr = new BinaryExpression($synExpr, $e2.synExpr, operator);
+        }
+        )*
     ;
 
-relationalExpression
-    : additiveExpression ((LT | GT) additiveExpression)*
+relationalExpression returns [Expression synExpr]
+    :   e1 = additiveExpression { $synExpr = $e1.synExpr; }
+        (
+        operatorName = (LT | GT)
+        e2 = additiveExpression
+        {
+            BinaryOperator operator = ($operatorName.text == "LT" ? BinaryOperator.lt : BinaryOperator.gt);
+            $synExpr = new BinaryExpression($synExpr, $e2.synExpr, operator);
+        }
+        )*
     ;
 
-additiveExpression
-    : multiplicativeExpression ((PLUS | MINUS) multiplicativeExpression)*
+additiveExpression returns [Expression synExpr]
+    :   e1 = multiplicativeExpression { $synExpr = $e1.synExpr; }
+        (
+        operatorName = (PLUS | MINUS)
+        e2 = multiplicativeExpression
+        {
+            BinaryOperator operator = ($operatorName.text == "PLUS" ? BinaryOperator.add : BinaryOperator.sub);
+            $synExpr = new BinaryExpression($synExpr, $e2.synExpr, operator);
+        }
+        )*
     ;
 
-multiplicativeExpression
-    : preUnaryExpression ((MULT | DIV | PERCENT) preUnaryExpression)*
+multiplicativeExpression returns [Expression synExpr]
+    :   e1 = preUnaryExpression { $synExpr = $e1.synExpr; }
+        (
+        operatorName = (MULT | DIV | PERCENT)
+        e2 = preUnaryExpression
+        {
+            BinaryOperator operator = ($operatorName.text == "MULT" ? BinaryOperator.mult : ($operatorName.text == "DIV" ? BinaryOperator.div : BinaryOperator.mod));
+            $synExpr = new BinaryExpression($synExpr, $e2.synExpr, operator);
+        }
+        )*
     ;
 
-preUnaryExpression
-    :   NOT preUnaryExpression
-    |   MINUS preUnaryExpression
-    |   PLUSPLUS preUnaryExpression
-    |   MINUSMINUS preUnaryExpression
-    |   postUnaryExpression
+preUnaryExpression returns [Expression synExpr]
+    :   NOT preUnaryExpression { $synExpr = new UnaryExpression(UnaryOperator.not, $preUnaryExpression.synExpr); }
+    |   MINUS preUnaryExpression { $synExpr = new UnaryExpression(UnaryOperator.minus, $preUnaryExpression.synExpr); }
+    |   PLUSPLUS preUnaryExpression { $synExpr = new UnaryExpression(UnaryOperator.preinc, $preUnaryExpression.synExpr); }
+    |   MINUSMINUS preUnaryExpression { $synExpr = new UnaryExpression(UnaryOperator.predec, $preUnaryExpression.synExpr); }
+    |   postUnaryExpression { $synExpr = $postUnaryExpression.synExpr; }
     ;
 
-postUnaryExpression
-    :   otherExpression (postUnaryOp)?
+postUnaryExpression returns [Expression synExpr]
+    :   otherExpression { $synExpr = $otherExpression.synExpr; }
+        (
+        postUnaryOp
+        {
+            UnaryOperator operator = ($postUnaryOp.text == "PLUSPLUS" ? UnaryOperator.postinc : UnaryOperator.postdec);
+            $synExpr = new UnaryExpression(operator, $synExpr);
+        }
+        )?
     ;
 
 postUnaryOp
     :	PLUSPLUS | MINUSMINUS
     ;
 
-otherExpression
-    :    LPAREN expression RPAREN
-    |    identifier
-    |    arrayCall
-    |    actorVarAccess
-    |    value
-    |    SENDER
+otherExpression returns [Expression synExpr]
+    :    LPAREN expression RPAREN { $synExpr = $expression.synExpr; }
+    |    identifier { $synExpr = $identifier.synExpr; }
+    |    arrayCall { $synExpr = $arrayCall.synExpr; }
+    |    actorVarAccess { $synExpr = $actorVarAccess.synExpr; }
+    |    value { $synExpr = $value.synExpr; }
+    |    SENDER { $synExpr = new Sender(); }
     ;
 
-arrayCall
-    :   (identifier | actorVarAccess) LBRACKET expression RBRACKET
+arrayCall returns [ArrayCall synExpr] locals [Expression instance]
+    :   (
+        identifier { $instance = $identifier.synExpr; } | actorVarAccess { $instance = $actorVarAccess.synExpr; })
+        LBRACKET
+        expression
+        RBRACKET
+        { $synExpr = new ArrayCall($instance, $expression.synExpr); }
     ;
 
-actorVarAccess
-    :   SELF DOT identifier
+actorVarAccess returns [ActorVarAccess synExpr]
+    :   SELF DOT identifier { $synExpr = new ActorVarAccess($identifier.synExpr); }
     ;
 
-expressionList
-    :	(expression(COMMA expression)* | )
+expressionList returns [ArrayList argExprs]
+    @init
+    {
+        $argExprs = new ArrayList<>();
+    }
+    :	(
+        expr1 = expression { $argExprs.add($expr1.synExpr); }
+        (COMMA expr2 = expression { $argExprs.add($expr2.synExpr); } )*
+        |
+        )
     ;
 
-identifier
-    :   IDENTIFIER
+identifier returns [Identifier synExpr]
+    :   id = IDENTIFIER
+        { $synExpr = new Identifier($id.text); }
     ;
 
-value
-    :   INTVAL | STRINGVAL | TRUE | FALSE
+value returns [Value synExpr]
+    :   val = INTVAL { $synExpr = new IntValue($val.int, new IntType()); }
+    |   val = STRINGVAL { $synExpr = new StringValue($val.text, new StringType()); }
+    |   val = TRUE { $synExpr = new BooleanValue(true, new BooleanType()); }
+    |   val = FALSE { $synExpr = new BooleanValue(false, new BooleanType()); }
     ;
 
 // values
