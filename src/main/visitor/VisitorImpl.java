@@ -114,7 +114,14 @@ public class VisitorImpl implements Visitor {
         String variableItemKey = variableItem.getKey();
 
         try {
+            SymbolTable preSymbolTable = SymbolTable.top.getPreSymbolTable();
+            try {
+                preSymbolTable.get(variableItem.getKey());
+                throw new ItemAlreadyExistsException();
+            } catch (ItemNotFoundException e1) {}
+
             SymbolTable.top.put(variableItem);
+
         } catch(ItemAlreadyExistsException e) {
             addVarRedefinitionError(varDeclaration);
             int count = 1;
@@ -124,7 +131,7 @@ public class VisitorImpl implements Visitor {
                     String newName = variableItemKey + count;
                     variableItem.setName(newName);
                     SymbolTable.top.put(variableItem);
-                } catch(ItemAlreadyExistsException e1) {
+                } catch(ItemAlreadyExistsException e2) {
                     count++;
                     continue;
                 }
