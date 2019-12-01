@@ -395,9 +395,11 @@ public class VisitorImpl implements Visitor {
 
         SymbolTableHandlerItem symbolTableHandlerItem = new SymbolTableHandlerItem(handlerDeclaration);
 
-        handleHandlerItemFirstPass(symbolTableHandlerItem, handlerDeclaration);
-        if(secondPass) {
-            handleHandlerItemSecondPass(symbolTableHandlerItem, handlerDeclaration, SymbolTable.top.getName());
+        if(!handlerDeclaration.getName().getName().equals("initial")) {
+            handleHandlerItemFirstPass(symbolTableHandlerItem, handlerDeclaration);
+            if(secondPass) {
+                handleHandlerItemSecondPass(symbolTableHandlerItem, handlerDeclaration, SymbolTable.top.getName());
+            }
         }
 
         SymbolTable handlerSymbolTable = new SymbolTable(SymbolTable.top, SymbolTable.top.getName());
