@@ -453,10 +453,28 @@ public class VisitorImpl implements Visitor {
     public void visit(Main mainActors) {
         addToPreOrder(mainActors.toString());
 
+        SymbolTableMainItem symbolTableMainItem = new SymbolTableMainItem(mainActors);
+
+        try {
+            SymbolTable.top.put(symbolTableMainItem);
+        } catch(ItemAlreadyExistsException e) {
+            //Main existing!
+        }
+
+        SymbolTable mainSymbolTable = new SymbolTable(SymbolTable.top, "Main");
+        symbolTableMainItem.setMainSymbolTable(mainSymbolTable);
+        SymbolTable.push(mainSymbolTable);
+
         ArrayList<ActorInstantiation> actorInstantiations = mainActors.getMainActors();
         for(ActorInstantiation actorInstantiation : actorInstantiations) {
+            if(secondPass) {
+                SymbolTableLocalVariableItem symbolTableLocalVariableItem = new SymbolTableLocalVariableItem(actorInstantiation);
+                handleVariableItemFirstPass(symbolTableLocalVariableItem, actorInstantiation);
+            }
             actorInstantiation.accept(this);
         }
+
+        SymbolTable.pop();
     }
 
     @Override
