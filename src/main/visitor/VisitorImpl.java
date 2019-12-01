@@ -179,6 +179,7 @@ public class VisitorImpl implements Visitor {
                     visited.add(parent);
                     parent = ((SymbolTableActorItem) parentItem).getParentName();
                 } catch (ItemNotFoundException e1) {
+                    break;
                     // Parent Not Found
                 }
             }
@@ -238,6 +239,7 @@ public class VisitorImpl implements Visitor {
                     visited.add(parent);
                     parent = ((SymbolTableActorItem) parentItem).getParentName();
                 } catch (ItemNotFoundException e1) {
+                    break;
                     // Parent Not Found
                 }
             }
@@ -278,6 +280,7 @@ public class VisitorImpl implements Visitor {
                     visited.add(parent);
                     parent = ((SymbolTableActorItem) parentItem).getParentName();
                 } catch (ItemNotFoundException e1) {
+                    break;
                     // Parent Not Found
                 }
             }
