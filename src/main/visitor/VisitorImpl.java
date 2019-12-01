@@ -24,6 +24,7 @@ public class VisitorImpl implements Visitor {
 
     ArrayList<String> preOrder = new ArrayList<String>();
     HashSet<String> errors = new HashSet<String>();
+    HashSet<String> cyclers = new HashSet<String>();
 
     boolean firstPass = true;
     boolean secondPass = false;
@@ -115,6 +116,14 @@ public class VisitorImpl implements Visitor {
         errors.add(error);
     }
 
+    private void addCyclicInheritanceError(ActorDeclaration actorDeclaration) {
+        String error = "Line:";
+        error += actorDeclaration.getLine();
+        error += ":Cyclic inheritance involving actor ";
+        error += actorDeclaration.getName().getName();
+        errors.add(error);
+    }
+
     private String getActorKey(String actorName) {
         return (SymbolTableActorItem.STARTKEY + actorName);
     }
@@ -123,12 +132,6 @@ public class VisitorImpl implements Visitor {
         String variableItemKey = variableItem.getKey();
 
         try {
-            SymbolTable preSymbolTable = SymbolTable.top.getPreSymbolTable();
-            try {
-                preSymbolTable.get(variableItem.getKey());
-                throw new ItemAlreadyExistsException();
-            } catch (ItemNotFoundException e1) {}
-
             SymbolTable.top.put(variableItem);
 
         } catch(ItemAlreadyExistsException e) {
@@ -244,6 +247,45 @@ public class VisitorImpl implements Visitor {
         }
     }
 
+    private void checkCyclicInheritance(ActorDeclaration actorDeclaration) {
+        String actorName = actorDeclaration.getName().getName();
+        if(cyclers.contains(actorName)) {
+            return;
+        }
+
+        String actorKey = getActorKey(actorName);
+        SymbolTableItem actorItem;
+
+        try {
+            actorItem = SymbolTable.root.get(actorKey);
+            HashSet<String> visited = new HashSet<String>();
+
+            visited.add(actorName);
+            String parent = ((SymbolTableActorItem) actorItem).getParentName();
+
+            while(parent != null) {
+                if(visited.contains(parent)) {
+                    addCyclicInheritanceError(actorDeclaration);
+                    cyclers.addAll(visited);
+                    break;
+                }
+
+                String parentKey = getActorKey(parent);
+                SymbolTableItem parentItem;
+
+                try {
+                    parentItem = SymbolTable.root.get(parentKey);
+                    visited.add(parent);
+                    parent = ((SymbolTableActorItem) parentItem).getParentName();
+                } catch (ItemNotFoundException e1) {
+                    // Parent Not Found
+                }
+            }
+        } catch(ItemNotFoundException e) {
+            // Actor Not Found
+        }
+    }
+
     @Override
     public void visit(Program program) {
         preOrder.add(program.toString());
@@ -262,6 +304,10 @@ public class VisitorImpl implements Visitor {
     @Override
     public void visit(ActorDeclaration actorDeclaration) {
         preOrder.add(actorDeclaration.toString());
+
+        if(secondPass) {
+            checkCyclicInheritance(actorDeclaration);
+        }
 
         SymbolTableActorItem symbolTableActorItem = new SymbolTableActorItem(actorDeclaration);
 
