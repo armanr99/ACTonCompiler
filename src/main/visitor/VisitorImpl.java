@@ -308,11 +308,9 @@ public class VisitorImpl implements Visitor {
         for(VarDeclaration localVar : handlerLocalVars) {
             SymbolTableLocalVariableItem symbolTableLocalVariableItem = new SymbolTableLocalVariableItem(localVar);
             if(firstPass) {
-                try {
-                    SymbolTable.top.put(symbolTableLocalVariableItem);
-                } catch(ItemAlreadyExistsException e) {
-                    //TODO: handle variable existing
-                }
+                handleVariableItemFirstPass(symbolTableLocalVariableItem, localVar);
+            } else if(secondPass) {
+                handleVariableItemSecondPass(symbolTableLocalVariableItem, localVar, SymbolTable.top.getName());
             }
             localVar.accept(this);
         }
