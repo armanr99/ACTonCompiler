@@ -13,10 +13,8 @@ import main.ast.node.statement.*;
 import main.symbolTable.*;
 import main.symbolTable.itemException.*;
 import main.symbolTable.symbolTableVariableItem.*;
-
 import java.util.ArrayList;
 import java.util.HashSet;
-
 import main.ast.type.*;
 import main.ast.type.arrayType.*;
 
