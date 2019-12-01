@@ -413,8 +413,6 @@ public class VisitorImpl implements Visitor {
             SymbolTableHandlerArgumentItem symbolTableHandlerArgumentItem = new SymbolTableHandlerArgumentItem(arg);
             if(firstPass) {
                 handleVariableItemFirstPass(symbolTableHandlerArgumentItem, arg);
-            } else if(secondPass) {
-                handleVariableItemSecondPass(symbolTableHandlerArgumentItem, arg, SymbolTable.top.getName());
             }
             arg.accept(this);
         }
@@ -424,8 +422,6 @@ public class VisitorImpl implements Visitor {
             SymbolTableLocalVariableItem symbolTableLocalVariableItem = new SymbolTableLocalVariableItem(localVar);
             if(firstPass) {
                 handleVariableItemFirstPass(symbolTableLocalVariableItem, localVar);
-            } else if(secondPass) {
-                handleVariableItemSecondPass(symbolTableLocalVariableItem, localVar, SymbolTable.top.getName());
             }
             localVar.accept(this);
         }
