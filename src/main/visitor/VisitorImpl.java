@@ -48,9 +48,9 @@ public class VisitorImpl implements Visitor {
         if(hasErrors()) {
             printErrors();
         }
-//        else {
-//            printPreOrder();
-//        }
+        else {
+            printPreOrder();
+        }
 
     }
 
@@ -62,6 +62,12 @@ public class VisitorImpl implements Visitor {
 
     public boolean hasErrors() {
         return (errors.size() > 0);
+    }
+
+    public void addToPreOrder(String str) {
+        if(secondPass) {
+            preOrder.add(str);
+        }
     }
 
     private void addActorRedefinitionError(ActorDeclaration actorDeclaration) {
@@ -282,7 +288,7 @@ public class VisitorImpl implements Visitor {
 
     @Override
     public void visit(Program program) {
-        preOrder.add(program.toString());
+        addToPreOrder(program.toString());
 
         ArrayList<ActorDeclaration> programActors = program.getActors();
         for(ActorDeclaration actorDec : programActors) {
@@ -297,7 +303,7 @@ public class VisitorImpl implements Visitor {
 
     @Override
     public void visit(ActorDeclaration actorDeclaration) {
-        preOrder.add(actorDeclaration.toString());
+        addToPreOrder(actorDeclaration.toString());
 
         if(secondPass) {
             checkCyclicInheritance(actorDeclaration);
@@ -383,7 +389,7 @@ public class VisitorImpl implements Visitor {
 
     @Override
     public void visit(HandlerDeclaration handlerDeclaration) {
-        preOrder.add(handlerDeclaration.toString());
+        addToPreOrder(handlerDeclaration.toString());
 
         SymbolTableHandlerItem symbolTableHandlerItem = new SymbolTableHandlerItem(handlerDeclaration);
 
@@ -424,7 +430,7 @@ public class VisitorImpl implements Visitor {
 
     @Override
     public void visit(VarDeclaration varDeclaration) {
-        preOrder.add(varDeclaration.toString());
+        addToPreOrder(varDeclaration.toString());
 
         if(secondPass) {
             Type varType = varDeclaration.getType();
@@ -441,7 +447,7 @@ public class VisitorImpl implements Visitor {
 
     @Override
     public void visit(Main mainActors) {
-        preOrder.add(mainActors.toString());
+        addToPreOrder(mainActors.toString());
 
         ArrayList<ActorInstantiation> actorInstantiations = mainActors.getMainActors();
         for(ActorInstantiation actorInstantiation : actorInstantiations) {
@@ -451,7 +457,7 @@ public class VisitorImpl implements Visitor {
 
     @Override
     public void visit(ActorInstantiation actorInstantiation) {
-        preOrder.add(actorInstantiation.toString());
+        addToPreOrder(actorInstantiation.toString());
 
         Identifier actorName = actorInstantiation.getIdentifier();
         actorName.accept(this);
@@ -469,7 +475,7 @@ public class VisitorImpl implements Visitor {
 
     @Override
     public void visit(UnaryExpression unaryExpression) {
-        preOrder.add(unaryExpression.toString());
+        addToPreOrder(unaryExpression.toString());
 
         Expression operator = unaryExpression.getOperand();
         operator.accept(this);
@@ -477,7 +483,7 @@ public class VisitorImpl implements Visitor {
 
     @Override
     public void visit(BinaryExpression binaryExpression) {
-        preOrder.add(binaryExpression.toString());
+        addToPreOrder(binaryExpression.toString());
 
         Expression left = binaryExpression.getLeft();
         left.accept(this);
@@ -488,7 +494,7 @@ public class VisitorImpl implements Visitor {
 
     @Override
     public void visit(ArrayCall arrayCall) {
-        preOrder.add(arrayCall.toString());
+        addToPreOrder(arrayCall.toString());
 
         Expression arrayInstance = arrayCall.getArrayInstance();
         arrayInstance.accept(this);
@@ -499,7 +505,7 @@ public class VisitorImpl implements Visitor {
 
     @Override
     public void visit(ActorVarAccess actorVarAccess) {
-        preOrder.add(actorVarAccess.toString());
+        addToPreOrder(actorVarAccess.toString());
 
         Self self = actorVarAccess.getSelf();
         self.accept(this);
@@ -510,37 +516,37 @@ public class VisitorImpl implements Visitor {
 
     @Override
     public void visit(Identifier identifier) {
-        preOrder.add(identifier.toString());
+        addToPreOrder(identifier.toString());
     }
 
     @Override
     public void visit(Self self) {
-        preOrder.add(self.toString());
+        addToPreOrder(self.toString());
     }
 
     @Override
     public void visit(Sender sender) {
-        preOrder.add(sender.toString());
+        addToPreOrder(sender.toString());
     }
 
     @Override
     public void visit(BooleanValue value) {
-        preOrder.add(value.toString());
+        addToPreOrder(value.toString());
     }
 
     @Override
     public void visit(IntValue value) {
-        preOrder.add(value.toString());
+        addToPreOrder(value.toString());
     }
 
     @Override
     public void visit(StringValue value) {
-        preOrder.add(value.toString());
+        addToPreOrder(value.toString());
     }
 
     @Override
     public void visit(Block block) {
-        preOrder.add(block.toString());
+        addToPreOrder(block.toString());
 
         ArrayList<Statement> statements = block.getStatements();
         for(Statement statement : statements) {
@@ -550,7 +556,7 @@ public class VisitorImpl implements Visitor {
 
     @Override
     public void visit(Conditional conditional) {
-        preOrder.add(conditional.toString());
+        addToPreOrder(conditional.toString());
 
         Expression expression = conditional.getExpression();
         expression.accept(this);
@@ -566,7 +572,7 @@ public class VisitorImpl implements Visitor {
 
     @Override
     public void visit(For loop) {
-        preOrder.add(loop.toString());
+        addToPreOrder(loop.toString());
 
         Assign initialize = loop.getInitialize();
         initialize.accept(this);
@@ -583,17 +589,17 @@ public class VisitorImpl implements Visitor {
 
     @Override
     public void visit(Break breakLoop) {
-        preOrder.add(breakLoop.toString());
+        addToPreOrder(breakLoop.toString());
     }
 
     @Override
     public void visit(Continue continueLoop) {
-        preOrder.add(continueLoop.toString());
+        addToPreOrder(continueLoop.toString());
     }
 
     @Override
     public void visit(MsgHandlerCall msgHandlerCall) {
-        preOrder.add(msgHandlerCall.toString());
+        addToPreOrder(msgHandlerCall.toString());
 
         Expression instance = msgHandlerCall.getInstance();
         instance.accept(this);
@@ -609,7 +615,7 @@ public class VisitorImpl implements Visitor {
 
     @Override
     public void visit(Print print) {
-        preOrder.add(print.toString());
+        addToPreOrder(print.toString());
 
         Expression arg = print.getArg();
         arg.accept(this);
@@ -617,7 +623,7 @@ public class VisitorImpl implements Visitor {
 
     @Override
     public void visit(Assign assign) {
-        preOrder.add(assign.toString());
+        addToPreOrder(assign.toString());
 
         Expression lValue = assign.getlValue();
         lValue.accept(this);
