@@ -264,8 +264,10 @@ public class VisitorImpl implements Visitor {
 
             while(parent != null) {
                 if(visited.contains(parent)) {
-                    addCyclicInheritanceError(actorDeclaration);
-                    cyclers.addAll(visited);
+                    if(parent.equals(actorName)) {
+                        addCyclicInheritanceError(actorDeclaration);
+                        cyclers.addAll(visited);
+                    }
                     break;
                 }
 
