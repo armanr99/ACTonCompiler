@@ -14,8 +14,8 @@ import main.symbolTable.*;
 import main.symbolTable.itemException.*;
 import main.symbolTable.symbolTableVariableItem.*;
 
-import java.util.*;
-import java.util.logging.Handler;
+import java.util.ArrayList;
+import java.util.HashSet;
 
 import main.ast.type.*;
 import main.ast.type.arrayType.*;
@@ -70,7 +70,8 @@ public class VisitorImpl implements Visitor {
         }
     }
 
-    private void addActorRedefinitionError(ActorDeclaration actorDeclaration) {
+    private void addActorRedefinitionError(Declaration declaration) {
+        ActorDeclaration actorDeclaration = (ActorDeclaration) declaration;
         String error = "Line:";
         error += actorDeclaration.getLine();
         error += ":";
@@ -79,21 +80,24 @@ public class VisitorImpl implements Visitor {
         errors.add(error);
     }
 
-    private void addQueueSizeError(ActorDeclaration actorDeclaration) {
+    private void addQueueSizeError(Declaration declaration) {
+        ActorDeclaration actorDeclaration = (ActorDeclaration) declaration;
         String error = "Line:";
         error += actorDeclaration.getLine();
         error += ":Queue size must be positive";
         errors.add(error);
     }
 
-    private void addArraySizeError(VarDeclaration varDeclaration) {
+    private void addArraySizeError(Declaration declaration) {
+        VarDeclaration varDeclaration = (VarDeclaration) declaration;
         String error = "Line:";
         error += varDeclaration.getLine();
         error += ":Array size must be positive";
         errors.add(error);
     }
 
-    private void addVarRedefinitionError(VarDeclaration varDeclaration) {
+    private void addVarRedefinitionError(Declaration declaration) {
+        VarDeclaration varDeclaration = (VarDeclaration) declaration;
         String error = "Line:";
         error += varDeclaration.getLine();
         error += ":Redefinition of variable ";
@@ -101,7 +105,8 @@ public class VisitorImpl implements Visitor {
         errors.add(error);
     }
 
-    private void addHandlerRedefinitionError(HandlerDeclaration handlerDeclaration) {
+    private void addHandlerRedefinitionError(Declaration declaration) {
+        HandlerDeclaration handlerDeclaration = (HandlerDeclaration) declaration;
         String error = "Line:";
         error += handlerDeclaration.getLine();
         error += ":Redefinition of msghandler ";
@@ -109,7 +114,8 @@ public class VisitorImpl implements Visitor {
         errors.add(error);
     }
 
-    private void addCyclicInheritanceError(ActorDeclaration actorDeclaration) {
+    private void addCyclicInheritanceError(Declaration declaration) {
+        ActorDeclaration actorDeclaration = (ActorDeclaration) declaration;
         String error = "Line:";
         error += actorDeclaration.getLine();
         error += ":Cyclic inheritance involving actor ";
@@ -307,10 +313,6 @@ public class VisitorImpl implements Visitor {
     public void visit(ActorDeclaration actorDeclaration) {
         addToPreOrder(actorDeclaration.toString());
 
-        if(secondPass) {
-            checkCyclicInheritance(actorDeclaration);
-        }
-
         SymbolTableActorItem symbolTableActorItem = new SymbolTableActorItem(actorDeclaration);
 
         try {
@@ -333,6 +335,10 @@ public class VisitorImpl implements Visitor {
             }
         }
 
+        if(secondPass) {
+            checkCyclicInheritance(actorDeclaration);
+        }
+
         SymbolTable actorSymbolTable = new SymbolTable(SymbolTable.top, actorDeclaration.getName().getName());
         symbolTableActorItem.setActorSymbolTable(actorSymbolTable);
         SymbolTable.push(actorSymbolTable);
@@ -342,7 +348,7 @@ public class VisitorImpl implements Visitor {
 
         Identifier parentName = actorDeclaration.getParentName();
         if(parentName != null) {
-            parentName.accept(this); //TODO: check if null is valid
+            parentName.accept(this);
         }
 
         if(secondPass) {
@@ -355,7 +361,6 @@ public class VisitorImpl implements Visitor {
         ArrayList<VarDeclaration> actorKnownActors = actorDeclaration.getKnownActors();
         for(VarDeclaration knownActor : actorKnownActors) {
             SymbolTableKnownActorItem symbolTableKnownActorItem = new SymbolTableKnownActorItem(knownActor);
-
 
             handleVariableItemFirstPass(symbolTableKnownActorItem, knownActor);
             if(secondPass) {
@@ -381,7 +386,7 @@ public class VisitorImpl implements Visitor {
             actorInit.accept(this);
         }
 
-        ArrayList<MsgHandlerDeclaration> actorMsgHandlers = actorDeclaration.getMsgHandlers(); //TODO: check duplicate
+        ArrayList<MsgHandlerDeclaration> actorMsgHandlers = actorDeclaration.getMsgHandlers();
         for(MsgHandlerDeclaration msgHandler : actorMsgHandlers) {
             msgHandler.accept(this);
         }
@@ -395,8 +400,8 @@ public class VisitorImpl implements Visitor {
 
         SymbolTableHandlerItem symbolTableHandlerItem = new SymbolTableHandlerItem(handlerDeclaration);
 
+        handleHandlerItemFirstPass(symbolTableHandlerItem, handlerDeclaration);
         if(!handlerDeclaration.getName().getName().equals("initial")) {
-            handleHandlerItemFirstPass(symbolTableHandlerItem, handlerDeclaration);
             if(secondPass) {
                 handleHandlerItemSecondPass(symbolTableHandlerItem, handlerDeclaration, SymbolTable.top.getName());
             }
@@ -412,7 +417,6 @@ public class VisitorImpl implements Visitor {
         ArrayList<VarDeclaration> handlerArgs = handlerDeclaration.getArgs();
         for(VarDeclaration arg : handlerArgs) {
             SymbolTableHandlerArgumentItem symbolTableHandlerArgumentItem = new SymbolTableHandlerArgumentItem(arg);
-
             handleVariableItemFirstPass(symbolTableHandlerArgumentItem, arg);
             arg.accept(this);
         }
@@ -467,10 +471,8 @@ public class VisitorImpl implements Visitor {
 
         ArrayList<ActorInstantiation> actorInstantiations = mainActors.getMainActors();
         for(ActorInstantiation actorInstantiation : actorInstantiations) {
-            if(secondPass) {
-                SymbolTableLocalVariableItem symbolTableLocalVariableItem = new SymbolTableLocalVariableItem(actorInstantiation);
-                handleVariableItemFirstPass(symbolTableLocalVariableItem, actorInstantiation);
-            }
+            SymbolTableLocalVariableItem symbolTableLocalVariableItem = new SymbolTableLocalVariableItem(actorInstantiation);
+            handleVariableItemFirstPass(symbolTableLocalVariableItem, actorInstantiation);
             actorInstantiation.accept(this);
         }
 
