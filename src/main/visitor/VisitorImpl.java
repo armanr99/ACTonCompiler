@@ -15,6 +15,7 @@ import main.symbolTable.itemException.*;
 import main.symbolTable.symbolTableVariableItem.*;
 
 import java.util.*;
+import java.util.logging.Handler;
 
 import main.ast.type.*;
 import main.ast.type.arrayType.*;
@@ -106,6 +107,14 @@ public class VisitorImpl implements Visitor {
         errors.add(error);
     }
 
+    private void addHandlerRedefinitionError(HandlerDeclaration handlerDeclaration) {
+        String error = "Line:";
+        error += handlerDeclaration.getLine();
+        error += ":Redefinition of msghandler ";
+        error += handlerDeclaration.getName().getName();
+        errors.add(error);
+    }
+
     private String getActorKey(String actorName) {
         return (SymbolTableActorItem.STARTKEY + actorName);
     }
@@ -161,6 +170,65 @@ public class VisitorImpl implements Visitor {
                     try {
                         parentSymbolTable.get(variableItem.getKey());
                         addVarRedefinitionError(varDeclaration);
+                        break;
+                    } catch(ItemNotFoundException e2) {}
+
+                    visited.add(parent);
+                    parent = ((SymbolTableActorItem) parentItem).getParentName();
+                } catch (ItemNotFoundException e1) {
+                    // Parent Not Found
+                }
+            }
+
+        } catch(ItemNotFoundException e) {
+            // Actor Not Found
+        }
+    }
+
+    private void handleHandlerItemFirstPass(SymbolTableHandlerItem handlerItem, HandlerDeclaration handlerDeclaration) {
+        String handlerItemKey = handlerItem.getKey();
+
+        try {
+            SymbolTable.top.put(handlerItem);
+        } catch(ItemAlreadyExistsException e) {
+            addHandlerRedefinitionError(handlerDeclaration);
+            int count = 1;
+
+            while(true) {
+                try {
+                    String newName = handlerItemKey + count;
+                    handlerItem.setName(newName);
+                    SymbolTable.top.put(handlerItem);
+                } catch(ItemAlreadyExistsException e2) {
+                    count++;
+                    continue;
+                }
+                break;
+            }
+        }
+    }
+
+    private void handleHandlerItemSecondPass(SymbolTableHandlerItem handlerItem, HandlerDeclaration handlerDeclaration, String actorName) {
+        String actorKey = getActorKey(actorName);
+        SymbolTableItem actorItem;
+
+        try {
+            actorItem = SymbolTable.root.get(actorKey);
+            HashSet<String> visited = new HashSet<String>();
+
+            visited.add(actorName);
+            String parent = ((SymbolTableActorItem) actorItem).getParentName();
+
+            while(parent != null && !visited.contains(parent)) {
+                String parentKey = getActorKey(parent);
+                SymbolTableItem parentItem;
+
+                try {
+                    parentItem = SymbolTable.root.get(parentKey);
+                    SymbolTable parentSymbolTable = ((SymbolTableActorItem) parentItem).getActorSymbolTable();
+                    try {
+                        parentSymbolTable.get(handlerItem.getKey());
+                        addHandlerRedefinitionError(handlerDeclaration);
                         break;
                     } catch(ItemNotFoundException e2) {}
 
@@ -279,11 +347,9 @@ public class VisitorImpl implements Visitor {
         SymbolTableHandlerItem symbolTableHandlerItem = new SymbolTableHandlerItem(handlerDeclaration);
 
         if(firstPass) {
-            try {
-                SymbolTable.top.put(symbolTableHandlerItem);
-            } catch(ItemAlreadyExistsException e) {
-                //TODO: handle handler existing
-            }
+            handleHandlerItemFirstPass(symbolTableHandlerItem, handlerDeclaration);
+        } else if(secondPass) {
+            handleHandlerItemSecondPass(symbolTableHandlerItem, handlerDeclaration, SymbolTable.top.getName());
         }
 
         SymbolTable handlerSymbolTable = new SymbolTable(SymbolTable.top, SymbolTable.top.getName());
