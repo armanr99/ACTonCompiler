@@ -575,13 +575,19 @@ public class VisitorImpl implements Visitor {
         addToPreOrder(loop.toString());
 
         Assign initialize = loop.getInitialize();
-        initialize.accept(this);
+        if(initialize != null) {
+            initialize.accept(this);
+        }
 
         Expression condition = loop.getCondition();
-        condition.accept(this);
+        if(condition != null) {
+            condition.accept(this);
+        }
 
         Assign update = loop.getUpdate();
-        update.accept(this);
+        if(update != null) {
+            update.accept(this);
+        }
 
         Statement body = loop.getBody();
         body.accept(this);
