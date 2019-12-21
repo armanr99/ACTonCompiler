@@ -4,6 +4,7 @@ import main.ast.node.Program;
 import main.compileError.CompileErrorException;
 //import main.visitor.astPrinter.ASTPrinter;
 import main.visitor.nameAnalyser.NameAnalyser;
+import main.visitor.semanticAnalyser.SemanticAnalyser;
 import org.antlr.v4.runtime.*;
 import antlr.actonLexer;
 import antlr.actonParser;
@@ -23,6 +24,10 @@ public class Acton {
             nameAnalyser.visit(program);
             if( nameAnalyser.numOfErrors() > 0 )
                 throw new CompileErrorException();
+            else {
+                SemanticAnalyser semanticAnalyser = new SemanticAnalyser();
+                semanticAnalyser.visit(program);
+            }
         }
         catch(CompileErrorException compileError){
         }

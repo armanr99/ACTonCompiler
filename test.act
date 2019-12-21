@@ -8,9 +8,8 @@ actor A(5) {
         boolean odd;
     }
     
-    msghandler initial(int i2) {
-        i = i2;
-        even = true;
+    msghandler initial() {
+        
     }
     
     msghandler foo() {
@@ -23,6 +22,21 @@ actor A(5) {
     
     msghandler bar() {
 	a.foo();
+    }
+    
+}
+
+actor B(5) {
+    knownactors {
+        
+    }
+    
+    actorvars {
+        
+    }
+    
+    msghandler initial() {
+       i = i + 1; 
     }
     
 }
