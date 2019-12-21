@@ -4,7 +4,7 @@ import main.ast.node.declaration.ActorDeclaration;
 import main.ast.node.expression.Identifier;
 
 public class SymbolTableActorItem extends SymbolTableItem {
-        
+
     protected SymbolTable actorSymbolTable;
     protected ActorDeclaration actorDeclaration;
     public static final String STARTKEY = "Actor_";

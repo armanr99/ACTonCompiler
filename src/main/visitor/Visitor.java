@@ -16,11 +16,6 @@ import main.ast.node.statement.*;
 
 public interface Visitor {
 
-    void check(Program program);
-    void printPreOrder();
-    void printErrors();
-    boolean hasErrors();
-
     void visit (Program program);
 
     //Declarations
