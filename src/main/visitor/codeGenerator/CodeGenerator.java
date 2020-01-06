@@ -102,6 +102,17 @@ public class CodeGenerator extends VisitorImpl {
         currentByteCodes.add(byteCode);
     }
 
+    private void addActorConstructorByteCodes(ActorDeclaration actorDeclaration) {
+        currentByteCodes.add("method public <init>(I)V");
+        currentByteCodes.add(".limit stack 2");
+        currentByteCodes.add(".limit locals 2");
+        currentByteCodes.add("aload_0");
+        currentByteCodes.add("iload_1");
+        currentByteCodes.add("invokespecial Actor/<init>(I)V");
+        currentByteCodes.add("return");
+        currentByteCodes.add(".end method");
+    }
+
     private void addWhiteSpaceToByteCodes() {
         currentByteCodes.add("");
     }
@@ -144,6 +155,10 @@ public class CodeGenerator extends VisitorImpl {
         for(VarDeclaration varDeclaration: actorDeclaration.getActorVars())
             varDeclaration.accept(this);
         inActorVars = false;
+
+        addWhiteSpaceToByteCodes();
+
+        addActorConstructorByteCodes(actorDeclaration);
 
         addWhiteSpaceToByteCodes();
 
