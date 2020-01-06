@@ -18,14 +18,13 @@ import main.symbolTable.*;
 import main.symbolTable.itemException.*;
 import main.visitor.VisitorImpl;
 import java.util.ArrayList;
-import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
 
 public class CodeGenerator extends VisitorImpl {
 
     private final String outputPath = "./output/";
-    private ArrayList<String> currentByteCodes = new ArrayList<>();
+    private ArrayList<String> actorByteCodes = new ArrayList<>();
 
     private boolean inKnownActors = false;
     private boolean inActorVars = false;
@@ -70,12 +69,12 @@ public class CodeGenerator extends VisitorImpl {
         }
     }
 
-    private void writeByteCodesFile(String fileName) {
+    private void writeByteCodesFile(ArrayList<String> byteCodes, String fileName) {
         try {
             String path = outputPath + fileName + ".j";
-            BufferedWriter writer = new BufferedWriter(new FileWriter(path));
+            FileWriter writer = new FileWriter(path);
 
-            for(String bytecode: currentByteCodes) {
+            for(String bytecode: byteCodes) {
                 writer.write(bytecode + System.lineSeparator());
             }
             writer.close();
@@ -86,35 +85,41 @@ public class CodeGenerator extends VisitorImpl {
         }
     }
 
-    private void addActorInfoByteCodes(ActorDeclaration actorDeclaration) {
+    private ArrayList<String> getActorInfoByteCodes(ActorDeclaration actorDeclaration) {
+        ArrayList<String> byteCodes = new ArrayList<>();
+
         String classByteCode = ".class public " + actorDeclaration.getName().getName();
-        currentByteCodes.add(classByteCode);
+        byteCodes.add(classByteCode);
 
         String superByteCode = ".super Actor";
-        currentByteCodes.add(superByteCode);
+        byteCodes.add(superByteCode);
+
+        return byteCodes;
     }
 
-    private void addActorFieldByteCodes(VarDeclaration varDeclaration) {
+    private ArrayList<String>  getActorFieldByteCodes(VarDeclaration varDeclaration) {
         String fieldName = varDeclaration.getIdentifier().getName();
         String typeDescriptor = getTypeDescriptor(varDeclaration.getType());
         String byteCode = ".field " + fieldName + " " + typeDescriptor;
 
-        currentByteCodes.add(byteCode);
+        ArrayList<String> byteCodes = new ArrayList<>();
+        byteCodes.add(byteCode);
+        return byteCodes;
     }
 
-    private void addActorConstructorByteCodes(ActorDeclaration actorDeclaration) {
-        currentByteCodes.add("method public <init>(I)V");
-        currentByteCodes.add(".limit stack 2");
-        currentByteCodes.add(".limit locals 2");
-        currentByteCodes.add("aload_0");
-        currentByteCodes.add("iload_1");
-        currentByteCodes.add("invokespecial Actor/<init>(I)V");
-        currentByteCodes.add("return");
-        currentByteCodes.add(".end method");
-    }
+    private ArrayList<String>  getActorConstructorByteCodes(ActorDeclaration actorDeclaration) {
+        ArrayList<String> byteCodes = new ArrayList<String>();
 
-    private void addWhiteSpaceToByteCodes() {
-        currentByteCodes.add("");
+        byteCodes.add("method public <init>(I)V");
+        byteCodes.add(".limit stack 2");
+        byteCodes.add(".limit locals 2");
+        byteCodes.add("aload_0");
+        byteCodes.add("iload_1");
+        byteCodes.add("invokespecial Actor/<init>(I)V");
+        byteCodes.add("return");
+        byteCodes.add(".end method");
+
+        return byteCodes;
     }
 
     private String getTypeDescriptor(Type type) {
@@ -143,8 +148,8 @@ public class CodeGenerator extends VisitorImpl {
     public void visit(ActorDeclaration actorDeclaration) {
         pushActorDeclarationSymbolTable(actorDeclaration);
 
-        addActorInfoByteCodes(actorDeclaration);
-        addWhiteSpaceToByteCodes();
+        actorByteCodes.addAll(getActorInfoByteCodes(actorDeclaration));
+        actorByteCodes.add("");
 
         inKnownActors = true;
         for(VarDeclaration varDeclaration: actorDeclaration.getKnownActors())
@@ -156,19 +161,19 @@ public class CodeGenerator extends VisitorImpl {
             varDeclaration.accept(this);
         inActorVars = false;
 
-        addWhiteSpaceToByteCodes();
+        actorByteCodes.add("");
 
-        addActorConstructorByteCodes(actorDeclaration);
+        actorByteCodes.addAll(getActorConstructorByteCodes(actorDeclaration));
 
-        addWhiteSpaceToByteCodes();
+        actorByteCodes.add("");
 
         if(actorDeclaration.getInitHandler() != null)
             actorDeclaration.getInitHandler().accept(this);
         for(MsgHandlerDeclaration msgHandlerDeclaration: actorDeclaration.getMsgHandlers())
             msgHandlerDeclaration.accept(this);
 
-        writeByteCodesFile(actorDeclaration.getName().getName());
-        currentByteCodes.clear();
+        writeByteCodesFile(actorByteCodes, actorDeclaration.getName().getName());
+        actorByteCodes.clear();
 
         SymbolTable.pop();
     }
@@ -197,7 +202,7 @@ public class CodeGenerator extends VisitorImpl {
             return;
 
         if(inKnownActors || inActorVars)
-            addActorFieldByteCodes(varDeclaration);
+            actorByteCodes.addAll(getActorFieldByteCodes(varDeclaration));
 
         visitExpr(varDeclaration.getIdentifier());
     }
