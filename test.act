@@ -1,48 +1,55 @@
 actor A(5) {
-    knownactors {
-        A a;
-    }
-    
-    actorvars {
-        int i;
-        boolean odd;
-    }
-    
-    msghandler initial() {
-        
-    }
-    
-    msghandler foo() {
-        if(odd == true){
-            print(i * i + i);
-        }
-        odd = !odd;
-        i = (i++);
-    }
-    
-    msghandler bar() {
-	a.foo();
-    }
-    
+	knownactors {
+		A a1;
+		B b1;
+	}
+
+	actorvars {
+		int b[5];
+	}
+
+	msghandler foo() {
+		int d[1];
+		a = self.b;
+		self.b = d;
+		a = b[2];
+		b.bar();
+	}
 }
 
-actor B(5) {
-    knownactors {
-        
-    }
-    
-    actorvars {
-        
-    }
-    
-    msghandler initial() {
-       i = i + 1; 
-    }
-    
+actor B(3){
+	knownactors {
+	}
+
+	actorvars {
+	}
+
+	msghandler bar() {
+		a1 = sender++;
+	}
+}
+
+actor C extends A(4) {
+	knownactors {
+		D d;
+	}
+
+	actorvars {
+	}
+
+	msghandler bar(){
+	    int i;
+        for(i=0; i<"10"; i=i+1){
+            2 = 3;
+            i = 2++;
+            i.foo();
+        }
+	}
 }
 
 main {
-    A a1(a2):(0);
-    A a2(a1):(1);
+	A a(b1):();
+	A a2(a,c):();
+	A a3(a2,b):();
+	C c():();
 }
-

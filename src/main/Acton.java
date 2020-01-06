@@ -27,6 +27,7 @@ public class Acton {
             else {
                 SemanticAnalyser semanticAnalyser = new SemanticAnalyser();
                 semanticAnalyser.visit(program);
+
             }
         }
         catch(CompileErrorException compileError){

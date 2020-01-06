@@ -39,7 +39,7 @@ public class SymbolTableActorParentLinker {
         }
         catch( ItemNotFoundException itemNotFound )
         {
-            System.out.println( "error occurred in linking parents" );
+//            System.out.println( "error occurred in linking parents" );
         }
     }
 
