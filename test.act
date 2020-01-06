@@ -1,55 +1,38 @@
-actor A(5) {
+actor A(5){
 	knownactors {
-		A a1;
-		B b1;
+		B b;
 	}
 
 	actorvars {
-		int b[5];
+		int i;
 	}
 
-	msghandler foo() {
-		int d[1];
-		a = self.b;
-		self.b = d;
-		a = b[2];
-		b.bar();
+	msghandler initial() {
+		i = 2;
+		b.foo(i);
+	}
+
+	msghandler bar(int i){
+		print(i);
+		sender.foo(i+1);
 	}
 }
 
-actor B(3){
+actor B(2){
 	knownactors {
+		A a;
 	}
 
 	actorvars {
 	}
 
-	msghandler bar() {
-		a1 = sender++;
-	}
-}
-
-actor C extends A(4) {
-	knownactors {
-		D d;
-	}
-
-	actorvars {
-	}
-
-	msghandler bar(){
-	    int i;
-        for(i=0; i<"10"; i=i+1){
-            2 = 3;
-            i = 2++;
-            i.foo();
-        }
+	msghandler foo(int i) {
+		print(i);
+		sender.bar(i+1);
 	}
 }
 
 main {
-	A a(b1):();
-	A a2(a,c):();
-	A a3(a2,b):();
-	C c():();
+	A a(b):();
+	B b(a):();
 }
