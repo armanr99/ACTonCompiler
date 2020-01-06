@@ -8,6 +8,12 @@ import main.ast.node.declaration.handler.MsgHandlerDeclaration;
 import main.ast.node.statement.*;
 import main.ast.node.expression.*;
 import main.ast.node.expression.values.*;
+import main.ast.type.*;
+import main.ast.type.actorType.ActorType;
+import main.ast.type.arrayType.ArrayType;
+import main.ast.type.primitiveType.BooleanType;
+import main.ast.type.primitiveType.IntType;
+import main.ast.type.primitiveType.StringType;
 import main.symbolTable.*;
 import main.symbolTable.itemException.*;
 import main.visitor.VisitorImpl;
@@ -20,6 +26,9 @@ public class CodeGenerator extends VisitorImpl {
 
     private final String outputPath = "./output/";
     private ArrayList<String> currentByteCodes = new ArrayList<>();
+
+    private boolean inKnownActors = false;
+    private boolean inActorVars = false;
 
     private void pushMainSymbolTable(){
         try{
@@ -61,11 +70,11 @@ public class CodeGenerator extends VisitorImpl {
         }
     }
 
-    private void writeBytecodesFile(String fileName) {
+    private void writeByteCodesFile(String fileName) {
         try {
             String path = outputPath + fileName + ".j";
             BufferedWriter writer = new BufferedWriter(new FileWriter(path));
-            
+
             for(String bytecode: currentByteCodes) {
                 writer.write(bytecode + System.lineSeparator());
             }
@@ -77,14 +86,39 @@ public class CodeGenerator extends VisitorImpl {
         }
     }
 
-    private void addActorInfoBytecodes(ActorDeclaration actorDeclaration) {
+    private void addActorInfoByteCodes(ActorDeclaration actorDeclaration) {
         String classByteCode = ".class public " + actorDeclaration.getName().getName();
         currentByteCodes.add(classByteCode);
-//
+
         String superByteCode = ".super Actor";
         currentByteCodes.add(superByteCode);
+    }
 
-        currentByteCodes.add("\n");
+    private void addActorFieldByteCodes(VarDeclaration varDeclaration) {
+        String fieldName = varDeclaration.getIdentifier().getName();
+        String typeDescriptor = getTypeDescriptor(varDeclaration.getType());
+        String byteCode = ".field " + fieldName + " " + typeDescriptor;
+
+        currentByteCodes.add(byteCode);
+    }
+
+    private void addWhiteSpaceToByteCodes() {
+        currentByteCodes.add("");
+    }
+
+    private String getTypeDescriptor(Type type) {
+        if(type instanceof IntType)
+            return "I";
+        else if(type instanceof BooleanType)
+            return "Z";
+        else if(type instanceof StringType)
+            return "Ljava/lang/String;";
+        else if(type instanceof ArrayType)
+            return "[I";
+        else if(type instanceof ActorType)
+            return ("L" + ((ActorType)type).getName().getName());
+        else
+            return "";
     }
 
     @Override
@@ -98,18 +132,27 @@ public class CodeGenerator extends VisitorImpl {
     public void visit(ActorDeclaration actorDeclaration) {
         pushActorDeclarationSymbolTable(actorDeclaration);
 
-        addActorInfoBytecodes(actorDeclaration);
+        addActorInfoByteCodes(actorDeclaration);
+        addWhiteSpaceToByteCodes();
 
+        inKnownActors = true;
         for(VarDeclaration varDeclaration: actorDeclaration.getKnownActors())
             varDeclaration.accept(this);
+        inKnownActors = false;
+
+        inActorVars = true;
         for(VarDeclaration varDeclaration: actorDeclaration.getActorVars())
             varDeclaration.accept(this);
+        inActorVars = false;
+
+        addWhiteSpaceToByteCodes();
+
         if(actorDeclaration.getInitHandler() != null)
             actorDeclaration.getInitHandler().accept(this);
         for(MsgHandlerDeclaration msgHandlerDeclaration: actorDeclaration.getMsgHandlers())
             msgHandlerDeclaration.accept(this);
 
-        writeBytecodesFile(actorDeclaration.getName().getName());
+        writeByteCodesFile(actorDeclaration.getName().getName());
         currentByteCodes.clear();
 
         SymbolTable.pop();
@@ -137,6 +180,9 @@ public class CodeGenerator extends VisitorImpl {
     public void visit(VarDeclaration varDeclaration) {
         if(varDeclaration == null)
             return;
+
+        if(inKnownActors || inActorVars)
+            addActorFieldByteCodes(varDeclaration);
 
         visitExpr(varDeclaration.getIdentifier());
     }
