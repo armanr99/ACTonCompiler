@@ -8,16 +8,19 @@ import main.ast.node.declaration.handler.MsgHandlerDeclaration;
 import main.ast.node.statement.*;
 import main.ast.node.expression.*;
 import main.ast.node.expression.values.*;
-import main.ast.type.arrayType.ArrayType;
 import main.symbolTable.*;
-import main.symbolTable.symbolTableVariableItem.*;
 import main.symbolTable.itemException.*;
 import main.visitor.VisitorImpl;
 import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Set;
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.io.IOException;
 
-public class codeGenerator extends VisitorImpl {
+public class CodeGenerator extends VisitorImpl {
+
+    private final String outputPath = "./output/";
+    private ArrayList<String> currentByteCodes = new ArrayList<>();
+
     private void pushMainSymbolTable(){
         try{
             SymbolTableMainItem mainItem = (SymbolTableMainItem) SymbolTable.root.getInCurrentScope(SymbolTableMainItem.STARTKEY + "main");
@@ -58,6 +61,32 @@ public class codeGenerator extends VisitorImpl {
         }
     }
 
+    private void writeBytecodesFile(String fileName) {
+        try {
+            String path = outputPath + fileName + ".j";
+            BufferedWriter writer = new BufferedWriter(new FileWriter(path));
+            
+            for(String bytecode: currentByteCodes) {
+                writer.write(bytecode + System.lineSeparator());
+            }
+            writer.close();
+        }
+        catch (IOException ex)
+        {
+            System.out.println(ex.getMessage());
+        }
+    }
+
+    private void addActorInfoBytecodes(ActorDeclaration actorDeclaration) {
+        String classByteCode = ".class public " + actorDeclaration.getName().getName();
+        currentByteCodes.add(classByteCode);
+//
+        String superByteCode = ".super Actor";
+        currentByteCodes.add(superByteCode);
+
+        currentByteCodes.add("\n");
+    }
+
     @Override
     public void visit(Program program){
         for(ActorDeclaration actorDeclaration : program.getActors())
@@ -69,8 +98,8 @@ public class codeGenerator extends VisitorImpl {
     public void visit(ActorDeclaration actorDeclaration) {
         pushActorDeclarationSymbolTable(actorDeclaration);
 
-        visitExpr(actorDeclaration.getName());
-        visitExpr(actorDeclaration.getParentName());
+        addActorInfoBytecodes(actorDeclaration);
+
         for(VarDeclaration varDeclaration: actorDeclaration.getKnownActors())
             varDeclaration.accept(this);
         for(VarDeclaration varDeclaration: actorDeclaration.getActorVars())
@@ -79,6 +108,9 @@ public class codeGenerator extends VisitorImpl {
             actorDeclaration.getInitHandler().accept(this);
         for(MsgHandlerDeclaration msgHandlerDeclaration: actorDeclaration.getMsgHandlers())
             msgHandlerDeclaration.accept(this);
+
+        writeBytecodesFile(actorDeclaration.getName().getName());
+        currentByteCodes.clear();
 
         SymbolTable.pop();
     }

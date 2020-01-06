@@ -4,7 +4,7 @@ import main.ast.node.Program;
 import main.compileError.CompileErrorException;
 import main.visitor.nameAnalyser.NameAnalyser;
 import main.visitor.semanticAnalyser.SemanticAnalyser;
-import main.visitor.codeGenerator.codeGenerator;
+import main.visitor.codeGenerator.CodeGenerator;
 import org.antlr.v4.runtime.*;
 import antlr.actonLexer;
 import antlr.actonParser;
@@ -27,8 +27,8 @@ public class Acton {
             else {
 //                SemanticAnalyser semanticAnalyser = new SemanticAnalyser();
 //                semanticAnalyser.visit(program);
-                SemanticAnalyser semanticAnalyser = new SemanticAnalyser();
-                semanticAnalyser.visit(program);
+                CodeGenerator codeGenerator = new CodeGenerator();
+                codeGenerator.visit(program);
             }
         }
         catch(CompileErrorException compileError){

@@ -82,6 +82,7 @@ nbactions*.xml
 /gen4/
 /tool/playground/
 tmp/
+/output/*
 
 # Configurable build files
 bilder.py
