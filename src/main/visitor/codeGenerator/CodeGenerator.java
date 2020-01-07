@@ -451,6 +451,12 @@ public class CodeGenerator extends VisitorImpl {
         actorByteCodes.add(zeroLabel + ":");
     }
 
+    private void addUnaryMinusByteCodes(UnaryExpression unaryExpression) {
+        actorByteCodes.add("iconst_0");
+        visitExpr(unaryExpression.getOperand());
+        actorByteCodes.add("isub");
+    }
+
     private void addHandlerByteCodesFile(HandlerDeclaration handlerDeclaration) {
         ArrayList<String> byteCodes = new ArrayList<>();
 
@@ -589,6 +595,8 @@ public class CodeGenerator extends VisitorImpl {
 
         if(unaryExpression.getUnaryOperator() == UnaryOperator.not)
             addUnaryNotByteCodes(unaryExpression);
+        else if(unaryExpression.getUnaryOperator() == UnaryOperator.minus)
+            addUnaryMinusByteCodes(unaryExpression);
 
     }
 
