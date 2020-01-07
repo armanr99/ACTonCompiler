@@ -16,6 +16,7 @@ import main.ast.type.primitiveType.IntType;
 import main.ast.type.primitiveType.StringType;
 import main.symbolTable.*;
 import main.symbolTable.itemException.*;
+import main.symbolTable.symbolTableVariableItem.SymbolTableVariableItem;
 import main.visitor.VisitorImpl;
 import org.stringtemplate.v4.compiler.Bytecode;
 
@@ -31,6 +32,10 @@ public class CodeGenerator extends VisitorImpl {
 
     private ActorDeclaration currentActor = null;
     private final int maxStackSize = 50;
+
+    private int currentVariableIndex = 1;
+
+    private boolean inHandler = false;
 
     private void pushMainSymbolTable(){
         try{
@@ -374,8 +379,15 @@ public class CodeGenerator extends VisitorImpl {
         actorByteCodes.addAll(getSetKnownActorsByteCodes(actorDeclaration));
         actorByteCodes.add("");
 
+        for(VarDeclaration varDeclaration: actorDeclaration.getKnownActors())
+            varDeclaration.accept(this);
+
+        for(VarDeclaration varDeclaration: actorDeclaration.getActorVars())
+            varDeclaration.accept(this);
+
         if(actorDeclaration.getInitHandler() != null)
             actorDeclaration.getInitHandler().accept(this);
+
         for(MsgHandlerDeclaration msgHandlerDeclaration: actorDeclaration.getMsgHandlers())
             msgHandlerDeclaration.accept(this);
 
@@ -390,20 +402,25 @@ public class CodeGenerator extends VisitorImpl {
         if(handlerDeclaration == null)
             return;
 
+        inHandler = true;
         pushHandlerDeclarationSymbolTable(handlerDeclaration);
+
+        currentVariableIndex = 1;
 
         if(handlerDeclaration.getName().getName() != "initial")
             addHandlerByteCodesFile(handlerDeclaration);
 
-        visitExpr(handlerDeclaration.getName());
         for(VarDeclaration argDeclaration: handlerDeclaration.getArgs())
             argDeclaration.accept(this);
+
         for(VarDeclaration localVariable: handlerDeclaration.getLocalVars())
             localVariable.accept(this);
+
         for(Statement statement : handlerDeclaration.getBody())
             visitStatement(statement);
 
         SymbolTable.pop();
+        inHandler = false;
     }
 
     @Override
@@ -411,7 +428,13 @@ public class CodeGenerator extends VisitorImpl {
         if(varDeclaration == null)
             return;
 
-        visitExpr(varDeclaration.getIdentifier());
+        try {
+            String symbolTableVariableItemName = SymbolTableVariableItem.STARTKEY + varDeclaration.getIdentifier().getName();
+            SymbolTableVariableItem symbolTableVariableItem = (SymbolTableVariableItem) SymbolTable.top.get(symbolTableVariableItemName);
+            symbolTableVariableItem.setIndex((inHandler ? currentVariableIndex++ : -1));
+        } catch(ItemNotFoundException itemNotFoundException) {
+            System.out.println("Logical Error in VarDeclaration visit");
+        }
     }
 
     @Override
