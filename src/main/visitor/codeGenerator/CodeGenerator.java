@@ -5,6 +5,7 @@ import main.ast.node.Program;
 import main.ast.node.declaration.*;
 import main.ast.node.declaration.handler.HandlerDeclaration;
 import main.ast.node.declaration.handler.MsgHandlerDeclaration;
+import main.ast.node.expression.operators.UnaryOperator;
 import main.ast.node.statement.*;
 import main.ast.node.expression.*;
 import main.ast.node.expression.values.*;
@@ -36,6 +37,12 @@ public class CodeGenerator extends VisitorImpl {
     private int currentVariableIndex = 1;
 
     private boolean inHandler = false;
+
+    private int labelIndex = 0;
+
+    private String getLabel() {
+        return ("Label" + (labelIndex++));
+    }
 
     private void pushMainSymbolTable(){
         try{
@@ -419,6 +426,31 @@ public class CodeGenerator extends VisitorImpl {
         return byteCodes;
     }
 
+    private ArrayList<String> getHandlerBeginningByteCodes(HandlerDeclaration handlerDeclaration) {
+        ArrayList<String> byteCodes = new ArrayList<>();
+
+        byteCodes.addAll(getHandlerInfoByteCodes(handlerDeclaration, false));
+        byteCodes.add(".limit stack " + maxStackSize);
+        int localsSize = handlerDeclaration.getArgs().size() + handlerDeclaration.getLocalVars().size() + 1;
+        if(handlerDeclaration.getName().getName() != "initial")
+            localsSize += 1;
+        byteCodes.add(".limit locals " + localsSize);
+
+        return byteCodes;
+    }
+
+    private void addUnaryNotByteCodes(UnaryExpression unaryExpression) {
+        visitExpr(unaryExpression.getOperand());
+        String oneLabel = getLabel();
+        String zeroLabel = getLabel();
+        actorByteCodes.add("ifeq " + oneLabel);
+        actorByteCodes.add("iconst_0");
+        actorByteCodes.add("goto " + zeroLabel);
+        actorByteCodes.add(oneLabel + ":");
+        actorByteCodes.add("iconst_1");
+        actorByteCodes.add(zeroLabel + ":");
+    }
+
     private void addHandlerByteCodesFile(HandlerDeclaration handlerDeclaration) {
         ArrayList<String> byteCodes = new ArrayList<>();
 
@@ -489,7 +521,11 @@ public class CodeGenerator extends VisitorImpl {
         if(handlerDeclaration.getName().getName() != "initial") {
             addHandlerByteCodesFile(handlerDeclaration);
             actorByteCodes.addAll(getHandlerSendByteCodes(handlerDeclaration));
+            actorByteCodes.add("");
         }
+
+        actorByteCodes.addAll(getHandlerBeginningByteCodes(handlerDeclaration));
+        actorByteCodes.add("");
 
         for(VarDeclaration argDeclaration: handlerDeclaration.getArgs())
             argDeclaration.accept(this);
@@ -501,6 +537,9 @@ public class CodeGenerator extends VisitorImpl {
             visitStatement(statement);
 
         SymbolTable.pop();
+
+        actorByteCodes.add("return");
+        actorByteCodes.add(".end method");
         inHandler = false;
     }
 
@@ -548,7 +587,9 @@ public class CodeGenerator extends VisitorImpl {
         if(unaryExpression == null)
             return;
 
-        visitExpr(unaryExpression.getOperand());
+        if(unaryExpression.getUnaryOperator() == UnaryOperator.not)
+            addUnaryNotByteCodes(unaryExpression);
+
     }
 
     @Override
