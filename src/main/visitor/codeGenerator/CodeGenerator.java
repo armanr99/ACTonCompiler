@@ -704,6 +704,7 @@ public class CodeGenerator extends VisitorImpl {
 
     @Override
     public void visit(Self self) {
+        actorByteCodes.add("aload_0");
     }
 
     @Override
