@@ -17,6 +17,9 @@ import main.ast.type.primitiveType.StringType;
 import main.symbolTable.*;
 import main.symbolTable.itemException.*;
 import main.visitor.VisitorImpl;
+import org.stringtemplate.v4.compiler.Bytecode;
+
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -28,6 +31,9 @@ public class CodeGenerator extends VisitorImpl {
 
     private boolean inKnownActors = false;
     private boolean inActorVars = false;
+
+    private ActorDeclaration currentActor = null;
+    private final int maxStackSize = 50;
 
     private void pushMainSymbolTable(){
         try{
@@ -97,10 +103,10 @@ public class CodeGenerator extends VisitorImpl {
         return byteCodes;
     }
 
-    private ArrayList<String>  getActorFieldByteCodes(VarDeclaration varDeclaration) {
+    private ArrayList<String> getFieldByteCodes(VarDeclaration varDeclaration, String accessLevel) {
         String fieldName = varDeclaration.getIdentifier().getName();
         String typeDescriptor = getTypeDescriptor(varDeclaration.getType());
-        String byteCode = ".field " + fieldName + " " + typeDescriptor;
+        String byteCode = ".field " + (accessLevel == "" ? "" : accessLevel + " ") + fieldName + " " + typeDescriptor;
 
         ArrayList<String> byteCodes = new ArrayList<>();
         byteCodes.add(byteCode);
@@ -132,9 +138,168 @@ public class CodeGenerator extends VisitorImpl {
         else if(type instanceof ArrayType)
             return "[I";
         else if(type instanceof ActorType)
-            return ("L" + ((ActorType)type).getName().getName());
+            return ("L" + ((ActorType)type).getName().getName()) + ";";
         else
             return "";
+    }
+
+    private String getHandlerFileClassName(HandlerDeclaration handlerDeclaration) {
+        return (currentActor.getName().getName() + "_" + handlerDeclaration.getName().getName());
+    }
+
+    private ArrayList<String> getHandlerMessageInfoByteCodes(HandlerDeclaration handlerDeclaration) {
+        ArrayList<String> byteCodes = new ArrayList<>();
+
+        String className = getHandlerFileClassName(handlerDeclaration);
+
+        String classByteCode = ".class public " + className;
+        byteCodes.add(classByteCode);
+
+        String superByteCode = ".super Message";
+        byteCodes.add(superByteCode);
+
+        return byteCodes;
+    }
+
+    private ArrayList<String> getHandlerMessageFieldsByteCodes(HandlerDeclaration handlerDeclaration) {
+        ArrayList<String> byteCodes = new ArrayList<>();
+
+        for(VarDeclaration arg : handlerDeclaration.getArgs())
+            byteCodes.addAll(getFieldByteCodes(arg, "private"));
+
+        byteCodes.add(".field private receiver " + "L" + currentActor.getName().getName() + ";");
+        byteCodes.add(".field private sender LActor;");
+
+        return byteCodes;
+    }
+
+    private ArrayList<String> getHandlerMessageConstructorInfoByteCodes(HandlerDeclaration handlerDeclaration) {
+        ArrayList<String> byteCodes = new ArrayList<>();
+
+        String methodInfo = ".method public <init>(";
+
+        methodInfo += ("L" + currentActor.getName().getName() + ";");
+        methodInfo += "LActor;";
+
+        for(VarDeclaration arg : handlerDeclaration.getArgs())
+            methodInfo += (getTypeDescriptor(arg.getType()));
+
+        methodInfo += ")V";
+
+        byteCodes.add(methodInfo);
+
+        return byteCodes;
+    }
+
+    private ArrayList<String> getHandlerMessageConstructorAssignsByteCodes(HandlerDeclaration handlerDeclaration) {
+        ArrayList<String> byteCodes = new ArrayList<>();
+        String className = getHandlerFileClassName(handlerDeclaration);
+
+        byteCodes.add("aload_0");
+        byteCodes.add("aload_1");
+        byteCodes.add("putfield " + className + "/receiver " + "L" + currentActor.getName().getName() + ";");
+        byteCodes.add("aload_0");
+        byteCodes.add("aload_2");
+        byteCodes.add("putfield " + className + "/sender LActor;");
+
+        int varIndex = 3;
+        for(VarDeclaration arg : handlerDeclaration.getArgs()) {
+            byteCodes.add("aload_0");
+
+            String loadInstruction;
+            if(arg.getType() instanceof IntType || arg.getType() instanceof BooleanType)
+                loadInstruction = "iload ";
+            else
+                loadInstruction = "aload ";
+            loadInstruction += (varIndex++);
+
+            byteCodes.add(loadInstruction);
+
+            byteCodes.add("putfield " + className + "/" + arg.getIdentifier().getName() + " " + getTypeDescriptor(arg.getType()));
+        }
+
+        return byteCodes;
+    }
+
+    private ArrayList<String> getHandlerMessageConstructorByteCodes(HandlerDeclaration handlerDeclaration) {
+        ArrayList<String> byteCodes = new ArrayList<>();
+
+        byteCodes.addAll(getHandlerMessageConstructorInfoByteCodes(handlerDeclaration));
+
+        byteCodes.add(".limit stack " + maxStackSize);
+        byteCodes.add(".limit locals " + (handlerDeclaration.getArgs().size() + 3));
+
+        byteCodes.add("aload_0");
+        byteCodes.add("invokespecial Message/<init>()V");
+
+        byteCodes.addAll(getHandlerMessageConstructorAssignsByteCodes(handlerDeclaration));
+
+        byteCodes.add("return");
+        byteCodes.add(".end method");
+
+        return byteCodes;
+    }
+
+    private ArrayList<String> getHandlerMessageExecuteInvokeByteCodes(HandlerDeclaration handlerDeclaration) {
+        ArrayList<String> byteCodes = new ArrayList<>();
+
+        String byteCode = "invokevirtual ";
+        byteCode += (currentActor.getName().getName() + "/" + handlerDeclaration.getName().getName());
+
+        byteCode += "(LActor;";
+        for(VarDeclaration arg : handlerDeclaration.getArgs())
+            byteCode += (getTypeDescriptor(arg.getType()));
+        byteCode += ")V";
+
+        byteCodes.add(byteCode);
+
+        return byteCodes;
+    }
+
+    private ArrayList<String> getHandlerMessageExecuteArgsByteCodes(HandlerDeclaration handlerDeclaration) {
+        ArrayList<String> byteCodes = new ArrayList<>();
+        String className = getHandlerFileClassName(handlerDeclaration);
+
+        byteCodes.add("aload_0");
+        byteCodes.add("getfield " + className + "/receiver " + "L" + currentActor.getName().getName() + ";");
+        byteCodes.add("aload_0");
+        byteCodes.add("getfield " + className + "/sender LActor");
+
+
+        for(VarDeclaration arg : handlerDeclaration.getArgs()) {
+            byteCodes.add("aload_0");
+            byteCodes.add("getfield " + className + "/" + arg.getIdentifier().getName() + " " + getTypeDescriptor(arg.getType()));
+        }
+
+        return byteCodes;
+    }
+
+    private ArrayList<String> getHandlerMessageExecuteByteCodes(HandlerDeclaration handlerDeclaration) {
+        ArrayList<String> byteCodes = new ArrayList<>();
+
+        byteCodes.add(".method public execute()V");
+        byteCodes.add(".limit stack " + maxStackSize);
+        byteCodes.add(".limit locals 1");
+        byteCodes.addAll(getHandlerMessageExecuteArgsByteCodes(handlerDeclaration));
+        byteCodes.addAll(getHandlerMessageExecuteInvokeByteCodes(handlerDeclaration));
+        byteCodes.add("return");
+        byteCodes.add(".end method");
+
+        return byteCodes;
+    }
+
+    private void addHandlerByteCodesFile(HandlerDeclaration handlerDeclaration) {
+        ArrayList<String> byteCodes = new ArrayList<>();
+
+        byteCodes.addAll(getHandlerMessageInfoByteCodes(handlerDeclaration));
+        byteCodes.add("");
+        byteCodes.addAll(getHandlerMessageFieldsByteCodes(handlerDeclaration));
+        byteCodes.add("");
+        byteCodes.addAll(getHandlerMessageConstructorByteCodes(handlerDeclaration));
+        byteCodes.add("");
+        byteCodes.addAll(getHandlerMessageExecuteByteCodes(handlerDeclaration));
+
+        writeByteCodesFile(byteCodes, getHandlerFileClassName(handlerDeclaration));
     }
 
     @Override
@@ -147,6 +312,8 @@ public class CodeGenerator extends VisitorImpl {
     @Override
     public void visit(ActorDeclaration actorDeclaration) {
         pushActorDeclarationSymbolTable(actorDeclaration);
+
+        currentActor = actorDeclaration;
 
         actorByteCodes.addAll(getActorInfoByteCodes(actorDeclaration));
         actorByteCodes.add("");
@@ -185,6 +352,9 @@ public class CodeGenerator extends VisitorImpl {
 
         pushHandlerDeclarationSymbolTable(handlerDeclaration);
 
+        if(handlerDeclaration.getName().getName() != "initial")
+            addHandlerByteCodesFile(handlerDeclaration);
+
         visitExpr(handlerDeclaration.getName());
         for(VarDeclaration argDeclaration: handlerDeclaration.getArgs())
             argDeclaration.accept(this);
@@ -202,7 +372,7 @@ public class CodeGenerator extends VisitorImpl {
             return;
 
         if(inKnownActors || inActorVars)
-            actorByteCodes.addAll(getActorFieldByteCodes(varDeclaration));
+            actorByteCodes.addAll(getFieldByteCodes(varDeclaration, ""));
 
         visitExpr(varDeclaration.getIdentifier());
     }
