@@ -457,7 +457,10 @@ public class CodeGenerator extends VisitorImpl {
         actorByteCodes.add("isub");
     }
 
-    private void addUnaryPreChangeByteCodes(UnaryExpression unaryExpression, boolean inc) {
+    private void addUnaryIncDecByteCodes(UnaryExpression unaryExpression, boolean pre, boolean inc) {
+        if(!pre)
+            visitExpr(unaryExpression.getOperand());
+
         try {
             Identifier operandIdentifier = (Identifier)unaryExpression.getOperand();
             String symbolTableVariableItemName = SymbolTableVariableItem.STARTKEY + operandIdentifier.getName();
@@ -477,7 +480,9 @@ public class CodeGenerator extends VisitorImpl {
         } catch(ItemNotFoundException itemNotFoundException) {
             System.out.println("Logical Error in addUnaryPreIncByteCodes");
         }
-        visitExpr(unaryExpression.getOperand());
+
+        if(pre)
+            visitExpr(unaryExpression.getOperand());
     }
 
     private void addHandlerByteCodesFile(HandlerDeclaration handlerDeclaration) {
@@ -620,10 +625,13 @@ public class CodeGenerator extends VisitorImpl {
         else if(unaryExpression.getUnaryOperator() == UnaryOperator.minus)
             addUnaryMinusByteCodes(unaryExpression);
         else if(unaryExpression.getUnaryOperator() == UnaryOperator.preinc)
-            addUnaryPreChangeByteCodes(unaryExpression, true);
+            addUnaryIncDecByteCodes(unaryExpression, true,true);
         else if(unaryExpression.getUnaryOperator() == UnaryOperator.predec)
-            addUnaryPreChangeByteCodes(unaryExpression, false);
-
+            addUnaryIncDecByteCodes(unaryExpression, true, false);
+        else if(unaryExpression.getUnaryOperator() == UnaryOperator.postinc)
+            addUnaryIncDecByteCodes(unaryExpression, false, true);
+        else if(unaryExpression.getUnaryOperator() == UnaryOperator.postdec)
+            addUnaryIncDecByteCodes(unaryExpression, false, false);
     }
 
     @Override
