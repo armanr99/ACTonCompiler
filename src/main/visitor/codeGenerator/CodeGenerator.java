@@ -457,6 +457,29 @@ public class CodeGenerator extends VisitorImpl {
         actorByteCodes.add("isub");
     }
 
+    private void addUnaryPreIncByteCodes(UnaryExpression unaryExpression) {
+        try {
+            Identifier operandIdentifier = (Identifier)unaryExpression.getOperand();
+            String symbolTableVariableItemName = SymbolTableVariableItem.STARTKEY + operandIdentifier.getName();
+            SymbolTableVariableItem symbolTableVariableItem = (SymbolTableVariableItem) SymbolTable.top.get(symbolTableVariableItemName);
+            int operandIndex = symbolTableVariableItem.getIndex();
+
+            if(operandIndex != -1) {
+                actorByteCodes.add("iinc " + operandIndex + " 1");
+            } else {
+                actorByteCodes.add("aload_0");
+                actorByteCodes.add("dup");
+                actorByteCodes.add("getfield " + currentActor.getName().getName() + "/" + operandIdentifier.getName() + " " + getTypeDescriptor(symbolTableVariableItem.getType()));
+                actorByteCodes.add("iconst_1");
+                actorByteCodes.add("iadd");
+                actorByteCodes.add("putfield " + currentActor.getName().getName() + "/" + operandIdentifier.getName() + " " + getTypeDescriptor(symbolTableVariableItem.getType()));
+            }
+        } catch(ItemNotFoundException itemNotFoundException) {
+            System.out.println("Logical Error in addUnaryPreIncByteCodes");
+        }
+        visitExpr(unaryExpression.getOperand());
+    }
+
     private void addHandlerByteCodesFile(HandlerDeclaration handlerDeclaration) {
         ArrayList<String> byteCodes = new ArrayList<>();
 
@@ -531,7 +554,6 @@ public class CodeGenerator extends VisitorImpl {
         }
 
         actorByteCodes.addAll(getHandlerBeginningByteCodes(handlerDeclaration));
-        actorByteCodes.add("");
 
         for(VarDeclaration argDeclaration: handlerDeclaration.getArgs())
             argDeclaration.accept(this);
@@ -597,6 +619,8 @@ public class CodeGenerator extends VisitorImpl {
             addUnaryNotByteCodes(unaryExpression);
         else if(unaryExpression.getUnaryOperator() == UnaryOperator.minus)
             addUnaryMinusByteCodes(unaryExpression);
+        else if(unaryExpression.getUnaryOperator() == UnaryOperator.preinc)
+            addUnaryPreIncByteCodes(unaryExpression);
 
     }
 
