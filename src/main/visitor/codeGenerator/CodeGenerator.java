@@ -794,7 +794,18 @@ public class CodeGenerator extends VisitorImpl {
     public void visit(Print print) {
         if(print == null)
             return;
-        visitExpr(print.getArg());
+
+        actorByteCodes.add("getstatic java/lang/System/out Ljava/io/PrintStream;");
+
+        Expression printArg = print.getArg();
+        visitExpr(printArg);
+
+        if(printArg instanceof Identifier && getTypeDescriptor((Identifier)printArg).equals("[I")) {
+            actorByteCodes.add("invokestatic java/util/Arrays.toString([I)Ljava/lang/String;");
+            actorByteCodes.add("invokevirtual java/io/PrintStream/println(Ljava/lang/String;)V");
+        }
+        else
+            actorByteCodes.add("invokevirtual java/io/PrintStream/println(" + getTypeDescriptor((Identifier)printArg) + ")V");
     }
 
     @Override
