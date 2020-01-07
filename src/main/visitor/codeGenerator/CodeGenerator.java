@@ -662,6 +662,30 @@ public class CodeGenerator extends VisitorImpl {
     public void visit(Identifier identifier) {
         if(identifier == null)
             return;
+
+        try {
+            String symbolTableVariableItemName = SymbolTableVariableItem.STARTKEY + identifier.getName();
+            SymbolTableVariableItem symbolTableVariableItem = (SymbolTableVariableItem) SymbolTable.top.get(symbolTableVariableItemName);
+            int variableIndex = symbolTableVariableItem.getIndex();
+            if(variableIndex != -1) {
+                String loadInstruction = "";
+
+                if(symbolTableVariableItem.getType() instanceof IntType || symbolTableVariableItem.getType() instanceof BooleanType)
+                    loadInstruction = "iload ";
+                else
+                    loadInstruction = "aload ";
+
+                loadInstruction += (variableIndex);
+                actorByteCodes.add(loadInstruction);
+            } else {
+                actorByteCodes.add("aload_0");
+                actorByteCodes.add("getfield " + currentActor.getName().getName() + "/" + identifier.getName() + " " + getTypeDescriptor(symbolTableVariableItem.getType()));
+            }
+        }
+        catch (ItemNotFoundException itemNotFoundException) {
+            System.out.println(identifier.getName());
+            System.out.println("Logical Error in Identifier visit");
+        }
     }
 
     @Override
@@ -691,7 +715,7 @@ public class CodeGenerator extends VisitorImpl {
         }
         try {
             visitExpr(msgHandlerCall.getInstance());
-            visitExpr(msgHandlerCall.getMsgHandlerName());
+//            visitExpr(msgHandlerCall.getMsgHandlerName());
             for (Expression argument : msgHandlerCall.getArgs())
                 visitExpr(argument);
         }
@@ -740,7 +764,7 @@ public class CodeGenerator extends VisitorImpl {
 
     @Override
     public void visit(Assign assign) {
-        visitExpr(assign.getlValue());
-        visitExpr(assign.getrValue());
+//        visitExpr(assign.getlValue());
+//        visitExpr(assign.getrValue());
     }
 }
