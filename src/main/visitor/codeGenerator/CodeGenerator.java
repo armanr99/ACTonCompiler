@@ -485,6 +485,17 @@ public class CodeGenerator extends VisitorImpl {
             visitExpr(unaryExpression.getOperand());
     }
 
+    private String getTypeDescriptor(Identifier identifier) {
+        try {
+            String symbolTableVariableItemName = SymbolTableVariableItem.STARTKEY + identifier.getName();
+            SymbolTableVariableItem symbolTableVariableItem = (SymbolTableVariableItem) SymbolTable.top.get(symbolTableVariableItemName);
+            return getTypeDescriptor(symbolTableVariableItem.getType());
+        } catch(ItemNotFoundException itemNotFoundException) {
+            System.out.println("Logical Error in getTypeDescriptor(ID)");
+            return "";
+        }
+    }
+
     private void addHandlerByteCodesFile(HandlerDeclaration handlerDeclaration) {
         ArrayList<String> byteCodes = new ArrayList<>();
 
@@ -573,6 +584,7 @@ public class CodeGenerator extends VisitorImpl {
 
         actorByteCodes.add("return");
         actorByteCodes.add(".end method");
+        actorByteCodes.add("");
         inHandler = false;
     }
 
@@ -655,7 +667,9 @@ public class CodeGenerator extends VisitorImpl {
         if(actorVarAccess == null)
             return;
 
-        visitExpr(actorVarAccess.getVariable());
+        actorByteCodes.add("aload_0");
+        actorByteCodes.add("getfield " + currentActor.getName().getName() + "/" + actorVarAccess.getVariable().getName() + " " + getTypeDescriptor(actorVarAccess.getVariable()));
+//        visitExpr(actorVarAccess.getVariable());
     }
 
     @Override
