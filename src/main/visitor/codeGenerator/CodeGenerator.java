@@ -645,9 +645,9 @@ public class CodeGenerator extends VisitorImpl {
 
     @Override
     public void visit(ArrayCall arrayCall) {
-
         visitExpr(arrayCall.getArrayInstance());
         visitExpr(arrayCall.getIndex());
+        actorByteCodes.add("iaload");
     }
 
     @Override
