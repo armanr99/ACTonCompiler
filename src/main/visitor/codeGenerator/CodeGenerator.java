@@ -756,8 +756,22 @@ public class CodeGenerator extends VisitorImpl {
     @Override
     public void visit(Conditional conditional) {
         visitExpr(conditional.getExpression());
-        visitStatement(conditional.getThenBody());
-        visitStatement(conditional.getElseBody());
+
+        if(conditional.getElseBody() == null) {
+            String nAfter = getLabel();
+            actorByteCodes.add("ifeq " + nAfter);
+            visitStatement(conditional.getThenBody());
+            actorByteCodes.add(nAfter + ":");
+        } else {
+            String nFalse = getLabel();
+            actorByteCodes.add("ifeq " + nFalse);
+            visitStatement(conditional.getElseBody());
+            String nAfter = getLabel();
+            actorByteCodes.add("goto " + nAfter);
+            actorByteCodes.add(nFalse + ":");
+            visitStatement(conditional.getElseBody());
+            actorByteCodes.add(nAfter + ":");
+        }
     }
 
     @Override
