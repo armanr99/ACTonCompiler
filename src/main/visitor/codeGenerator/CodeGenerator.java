@@ -29,9 +29,6 @@ public class CodeGenerator extends VisitorImpl {
     private final String outputPath = "./output/";
     private ArrayList<String> actorByteCodes = new ArrayList<>();
 
-    private boolean inKnownActors = false;
-    private boolean inActorVars = false;
-
     private ActorDeclaration currentActor = null;
     private final int maxStackSize = 50;
 
@@ -110,6 +107,18 @@ public class CodeGenerator extends VisitorImpl {
 
         ArrayList<String> byteCodes = new ArrayList<>();
         byteCodes.add(byteCode);
+        return byteCodes;
+    }
+
+    private ArrayList<String> getFieldsByteCodes(ActorDeclaration actorDeclaration) {
+        ArrayList<String> byteCodes = new ArrayList<>();
+
+        for(VarDeclaration knownActor : actorDeclaration.getKnownActors())
+            byteCodes.addAll(getFieldByteCodes(knownActor, ""));
+
+        for(VarDeclaration actorVar : actorDeclaration.getActorVars())
+            byteCodes.addAll(getFieldByteCodes(actorVar, ""));
+
         return byteCodes;
     }
 
@@ -288,6 +297,44 @@ public class CodeGenerator extends VisitorImpl {
         return byteCodes;
     }
 
+    private ArrayList<String> getSetKnownActorsInfoByteCodes(ActorDeclaration actorDeclaration) {
+        String methodInfo = ".method public setKnownActors(";
+        for(VarDeclaration knownActor : actorDeclaration.getKnownActors()) {
+            methodInfo += (getTypeDescriptor(knownActor.getType()));
+        }
+        methodInfo += ")V";
+
+        ArrayList<String> byteCodes = new ArrayList<>();
+        byteCodes.add(methodInfo);
+        return byteCodes;
+    }
+
+    private ArrayList<String> getSetKnownActorsAssignsByteCodes(ActorDeclaration actorDeclaration) {
+        ArrayList<String> byteCodes = new ArrayList<>();
+
+        int varIndex = 1;
+        for(VarDeclaration knownActor : actorDeclaration.getKnownActors()) {
+            byteCodes.add("aload_0");
+            byteCodes.add("aload " + varIndex++);
+            byteCodes.add("putfield " + currentActor.getName().getName() + "/" + knownActor.getIdentifier().getName() + " " + getTypeDescriptor(knownActor.getType()));
+        }
+
+        return byteCodes;
+    }
+
+    private ArrayList<String> getSetKnownActorsByteCodes(ActorDeclaration actorDeclaration) {
+        ArrayList<String> byteCodes = new ArrayList<>();
+
+        byteCodes.addAll(getSetKnownActorsInfoByteCodes(actorDeclaration));
+        byteCodes.add(".limit stack " + maxStackSize);
+        byteCodes.add(".limit locals " + (actorDeclaration.getKnownActors().size() + 1));
+        byteCodes.addAll(getSetKnownActorsAssignsByteCodes(actorDeclaration));
+        byteCodes.add("return");
+        byteCodes.add(".end method");
+
+        return byteCodes;
+    }
+
     private void addHandlerByteCodesFile(HandlerDeclaration handlerDeclaration) {
         ArrayList<String> byteCodes = new ArrayList<>();
 
@@ -318,20 +365,13 @@ public class CodeGenerator extends VisitorImpl {
         actorByteCodes.addAll(getActorInfoByteCodes(actorDeclaration));
         actorByteCodes.add("");
 
-        inKnownActors = true;
-        for(VarDeclaration varDeclaration: actorDeclaration.getKnownActors())
-            varDeclaration.accept(this);
-        inKnownActors = false;
-
-        inActorVars = true;
-        for(VarDeclaration varDeclaration: actorDeclaration.getActorVars())
-            varDeclaration.accept(this);
-        inActorVars = false;
-
+        actorByteCodes.addAll(getFieldsByteCodes(actorDeclaration));
         actorByteCodes.add("");
 
         actorByteCodes.addAll(getActorConstructorByteCodes(actorDeclaration));
+        actorByteCodes.add("");
 
+        actorByteCodes.addAll(getSetKnownActorsByteCodes(actorDeclaration));
         actorByteCodes.add("");
 
         if(actorDeclaration.getInitHandler() != null)
@@ -370,9 +410,6 @@ public class CodeGenerator extends VisitorImpl {
     public void visit(VarDeclaration varDeclaration) {
         if(varDeclaration == null)
             return;
-
-        if(inKnownActors || inActorVars)
-            actorByteCodes.addAll(getFieldByteCodes(varDeclaration, ""));
 
         visitExpr(varDeclaration.getIdentifier());
     }
