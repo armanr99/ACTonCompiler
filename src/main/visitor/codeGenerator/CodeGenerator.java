@@ -713,14 +713,20 @@ public class CodeGenerator extends VisitorImpl {
 
     @Override
     public void visit(BooleanValue value) {
+        if(value.getConstant() == true)
+            actorByteCodes.add("iconst_1");
+        else
+            actorByteCodes.add("iconst_0");
     }
 
     @Override
     public void visit(IntValue value) {
+        actorByteCodes.add("ldc " + value.getConstant()); //TODO: Bipush? Sipush? Or just ldc?
     }
 
     @Override
     public void visit(StringValue value) {
+        actorByteCodes.add("ldc " + value.getConstant());
     }
 
     @Override
