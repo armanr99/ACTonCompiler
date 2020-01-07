@@ -457,7 +457,7 @@ public class CodeGenerator extends VisitorImpl {
         actorByteCodes.add("isub");
     }
 
-    private void addUnaryPreIncByteCodes(UnaryExpression unaryExpression) {
+    private void addUnaryPreChangeByteCodes(UnaryExpression unaryExpression, boolean inc) {
         try {
             Identifier operandIdentifier = (Identifier)unaryExpression.getOperand();
             String symbolTableVariableItemName = SymbolTableVariableItem.STARTKEY + operandIdentifier.getName();
@@ -465,36 +465,13 @@ public class CodeGenerator extends VisitorImpl {
             int operandIndex = symbolTableVariableItem.getIndex();
 
             if(operandIndex != -1) {
-                actorByteCodes.add("iinc " + operandIndex + ", 1");
+                actorByteCodes.add("iinc " + operandIndex + (inc ? ", 1" : ", -1"));
             } else {
                 actorByteCodes.add("aload_0");
                 actorByteCodes.add("dup");
                 actorByteCodes.add("getfield " + currentActor.getName().getName() + "/" + operandIdentifier.getName() + " " + getTypeDescriptor(symbolTableVariableItem.getType()));
                 actorByteCodes.add("iconst_1");
-                actorByteCodes.add("iadd");
-                actorByteCodes.add("putfield " + currentActor.getName().getName() + "/" + operandIdentifier.getName() + " " + getTypeDescriptor(symbolTableVariableItem.getType()));
-            }
-        } catch(ItemNotFoundException itemNotFoundException) {
-            System.out.println("Logical Error in addUnaryPreIncByteCodes");
-        }
-        visitExpr(unaryExpression.getOperand());
-    }
-
-    private void addUnaryPreDecByteCodes(UnaryExpression unaryExpression) {
-        try {
-            Identifier operandIdentifier = (Identifier)unaryExpression.getOperand();
-            String symbolTableVariableItemName = SymbolTableVariableItem.STARTKEY + operandIdentifier.getName();
-            SymbolTableVariableItem symbolTableVariableItem = (SymbolTableVariableItem) SymbolTable.top.get(symbolTableVariableItemName);
-            int operandIndex = symbolTableVariableItem.getIndex();
-
-            if(operandIndex != -1) {
-                actorByteCodes.add("iinc " + operandIndex + ", -1");
-            } else {
-                actorByteCodes.add("aload_0");
-                actorByteCodes.add("dup");
-                actorByteCodes.add("getfield " + currentActor.getName().getName() + "/" + operandIdentifier.getName() + " " + getTypeDescriptor(symbolTableVariableItem.getType()));
-                actorByteCodes.add("iconst_1");
-                actorByteCodes.add("isub");
+                actorByteCodes.add((inc ? "iadd" : "isub"));
                 actorByteCodes.add("putfield " + currentActor.getName().getName() + "/" + operandIdentifier.getName() + " " + getTypeDescriptor(symbolTableVariableItem.getType()));
             }
         } catch(ItemNotFoundException itemNotFoundException) {
@@ -643,9 +620,9 @@ public class CodeGenerator extends VisitorImpl {
         else if(unaryExpression.getUnaryOperator() == UnaryOperator.minus)
             addUnaryMinusByteCodes(unaryExpression);
         else if(unaryExpression.getUnaryOperator() == UnaryOperator.preinc)
-            addUnaryPreIncByteCodes(unaryExpression);
+            addUnaryPreChangeByteCodes(unaryExpression, true);
         else if(unaryExpression.getUnaryOperator() == UnaryOperator.predec)
-            addUnaryPreDecByteCodes(unaryExpression);
+            addUnaryPreChangeByteCodes(unaryExpression, false);
 
     }
 
