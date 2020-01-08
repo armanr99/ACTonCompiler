@@ -952,12 +952,12 @@ public class CodeGenerator extends VisitorImpl {
         Expression printArg = print.getArg();
         visitExpr(printArg);
 
-        if(printArg instanceof Identifier && getTypeDescriptor((Identifier)printArg).equals("[I")) {
+        if(printArg.getType() instanceof ArrayType) {
             actorByteCodes.add("invokestatic java/util/Arrays.toString([I)Ljava/lang/String;");
             actorByteCodes.add("invokevirtual java/io/PrintStream/println(Ljava/lang/String;)V");
         }
         else
-            actorByteCodes.add("invokevirtual java/io/PrintStream/println(" + getTypeDescriptor((Identifier)printArg) + ")V");
+            actorByteCodes.add("invokevirtual java/io/PrintStream/println(" + getTypeDescriptor(printArg.getType()) + ")V");
     }
 
     @Override
