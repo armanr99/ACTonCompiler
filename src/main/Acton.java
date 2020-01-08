@@ -18,17 +18,21 @@ public class Acton {
         actonLexer lexer = new actonLexer(reader);
         CommonTokenStream tokens = new CommonTokenStream(lexer);
         actonParser parser = new actonParser(tokens);
-        try{
+        try {
             Program program = parser.program().p; // program is starting production rule
             NameAnalyser nameAnalyser = new NameAnalyser();
             nameAnalyser.visit(program);
-            if( nameAnalyser.numOfErrors() > 0 )
+            if( nameAnalyser.numOfErrors() > 0 ) {
                 throw new CompileErrorException();
-            else {
-//                SemanticAnalyser semanticAnalyser = new SemanticAnalyser();
-//                semanticAnalyser.visit(program);
-                CodeGenerator codeGenerator = new CodeGenerator();
-                codeGenerator.visit(program);
+            } else {
+                SemanticAnalyser semanticAnalyser = new SemanticAnalyser();
+                semanticAnalyser.visit(program);
+                if(semanticAnalyser.numOfErrors() > 0) {
+                    throw new CompileErrorException();
+                } else {
+                    CodeGenerator codeGenerator = new CodeGenerator();
+                    codeGenerator.visit(program);
+                }
             }
         }
         catch(CompileErrorException compileError){

@@ -42,6 +42,11 @@ public class SemanticAnalyser extends VisitorImpl {
         semanticErrors = new ArrayList<>();
     }
 
+    public int numOfErrors()
+    {
+        return semanticErrors.size();
+    }
+
     private void pushMainSymbolTable(){
         try{
             SymbolTableMainItem mainItem = (SymbolTableMainItem) SymbolTable.root.getInCurrentScope(SymbolTableMainItem.STARTKEY + "main");
