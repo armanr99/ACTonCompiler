@@ -927,9 +927,21 @@ public class CodeGenerator extends VisitorImpl {
     @Override
     public void visit(For loop) {
         visitStatement(loop.getInitialize());
-        visitExpr(loop.getCondition());
-        visitStatement(loop.getUpdate());
+
+        String nFor = getLabel();
+        String nAfter = getLabel();
+
+        actorByteCodes.add(nFor + ":");
+
+        if(loop.getCondition() != null) {
+            visitExpr(loop.getCondition());
+            actorByteCodes.add("ifeq " + nAfter);
+        }
+
         visitStatement(loop.getBody());
+
+        visitStatement(loop.getUpdate());
+        actorByteCodes.add("goto " + nFor);
     }
 
     @Override
