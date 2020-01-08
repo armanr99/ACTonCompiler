@@ -626,6 +626,17 @@ public class CodeGenerator extends VisitorImpl {
         }
     }
 
+    private void addMsgHandlerCallInvokeByteCodes(MsgHandlerCall msgHandlerCall) {
+        String byteCode = "invokevirtual Actor/send_";
+        byteCode += (msgHandlerCall.getMsgHandlerName().getName());
+        byteCode += "(LActor;";
+        for(Expression arg : msgHandlerCall.getArgs())
+            byteCode += getTypeDescriptor(arg.getType()); //TODO: Think! isn't there a better approach?
+        byteCode += ")V";
+        actorByteCodes.add(byteCode);
+    }
+
+
     @Override
     public void visit(Program program){
         for(ActorDeclaration actorDeclaration : program.getActors())
@@ -677,7 +688,10 @@ public class CodeGenerator extends VisitorImpl {
         inHandler = true;
         pushHandlerDeclarationSymbolTable(handlerDeclaration);
 
-        currentVariableIndex = 1;
+        if(handlerDeclaration.getName().getName() == "initial")
+            currentVariableIndex = 1;
+        else
+            currentVariableIndex = 2;
 
         if(handlerDeclaration.getName().getName() != "initial") {
             addHandlerByteCodesFile(handlerDeclaration);
@@ -843,6 +857,7 @@ public class CodeGenerator extends VisitorImpl {
 
     @Override
     public void visit(Sender sender) {
+        actorByteCodes.add("aload_1");
     }
 
     @Override
@@ -870,9 +885,10 @@ public class CodeGenerator extends VisitorImpl {
         }
         try {
             visitExpr(msgHandlerCall.getInstance());
-//            visitExpr(msgHandlerCall.getMsgHandlerName());
+            actorByteCodes.add("aload_0");
             for (Expression argument : msgHandlerCall.getArgs())
                 visitExpr(argument);
+            addMsgHandlerCallInvokeByteCodes(msgHandlerCall);
         }
         catch(NullPointerException npe) {
             System.out.println("null pointer exception occurred");
