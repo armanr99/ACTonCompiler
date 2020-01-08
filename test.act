@@ -1,38 +1,121 @@
-actor A(5){
+actor BufferManager(4) {
 	knownactors {
-		B b;
+		Producer producer;
+		Consumer consumer;
 	}
 
 	actorvars {
-		int i;
+		boolean empty;
+		boolean full;
+		boolean producerWaiting;
+		boolean consumerWaiting;
+		int bufferLength;
+		int nextProduce;
+		int nextConsume;
 	}
 
 	msghandler initial() {
-		i = 2;
-		b.foo(i);
+		bufferLength = 5;
+		empty = true;
+		full = false;
+		producerWaiting = false;
+		consumerWaiting = false;
+		nextProduce = 0;
+		nextConsume = 0;
 	}
 
-	msghandler bar(int i){
-		print(i);
-		sender.foo(i+1);
+	msghandler giveMeNextProduce() {
+		if (!full)	{
+			producer.produce();
+		}
+     	else {
+			producerWaiting = true;
+		}
+	}
+
+	msghandler giveMeNextConsume() {
+		if (!empty) {
+			consumer.consume();
+		}
+     		else {
+			consumerWaiting = true;
+		}
+	}
+
+	msghandler ackProduce() {
+		nextProduce = (nextProduce + 1) % bufferLength;
+		if (nextProduce == nextConsume) {
+			full = true;
+		}
+		empty = false;
+		if (consumerWaiting) {
+			consumer.consume();
+			consumerWaiting = false;
+		}
+	}
+
+	msghandler ackConsume() {
+		nextConsume = (nextConsume + 1) % bufferLength;
+		if (nextConsume == nextProduce) {
+			empty = true;
+		}
+		full = false;
+		if (producerWaiting) {
+			producer.produce();
+			producerWaiting = false;
+		}
 	}
 }
 
-actor B(2){
+actor Producer(2) {
 	knownactors {
-		A a;
+		BufferManager buffer;
 	}
 
 	actorvars {
 	}
 
-	msghandler foo(int i) {
-		print(i);
-		sender.bar(i+1);
+	msghandler initial() {
+		self.beginProduce();
+	}
+
+	msghandler produce() {
+		print("producer is producing");
+		buffer.ackProduce();
+		self.beginProduce();
+	}
+
+	msghandler beginProduce() {
+		buffer.giveMeNextProduce();
 	}
 }
 
+actor Consumer(2) {
+	knownactors {
+		BufferManager buffer;
+	}
+
+	actorvars {
+	}
+
+	msghandler initial() {
+		self.beginConsume();
+	}
+
+	msghandler consume() {
+		print("consumer is consuming");
+		buffer.ackConsume();
+		self.beginConsume();
+	}
+
+	msghandler beginConsume() {
+		buffer.giveMeNextConsume();
+	}
+
+}
+
 main {
-	A a(b):();
-	B b(a):();
+	BufferManager buffer(producer, consumer):();
+	Producer producer(buffer):();
+	Consumer consumer(buffer):();
 }

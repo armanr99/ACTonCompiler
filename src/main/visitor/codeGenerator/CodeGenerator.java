@@ -18,13 +18,8 @@ import main.ast.type.primitiveType.IntType;
 import main.ast.type.primitiveType.StringType;
 import main.symbolTable.*;
 import main.symbolTable.itemException.*;
-import main.symbolTable.symbolTableVariableItem.SymbolTableActorVariableItem;
-import main.symbolTable.symbolTableVariableItem.SymbolTableKnownActorItem;
 import main.symbolTable.symbolTableVariableItem.SymbolTableVariableItem;
 import main.visitor.VisitorImpl;
-import org.stringtemplate.v4.compiler.Bytecode;
-
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -1074,7 +1069,7 @@ public class CodeGenerator extends VisitorImpl {
         } else {
             String nFalse = getLabel();
             currentByteCodes.add("ifeq " + nFalse);
-            visitStatement(conditional.getElseBody());
+            visitStatement(conditional.getThenBody());
             String nAfter = getLabel();
             currentByteCodes.add("goto " + nAfter);
             currentByteCodes.add(nFalse + ":");
