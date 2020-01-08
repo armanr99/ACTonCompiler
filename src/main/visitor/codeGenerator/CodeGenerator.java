@@ -146,7 +146,7 @@ public class CodeGenerator extends VisitorImpl {
         return byteCodes;
     }
 
-    private ArrayList<String>  getActorConstructorByteCodes(ActorDeclaration actorDeclaration) {
+    private ArrayList<String> getActorConstructorByteCodes(ActorDeclaration actorDeclaration) {
         ArrayList<String> byteCodes = new ArrayList<String>();
 
         byteCodes.add(".method public <init>(I)V");
@@ -155,6 +155,10 @@ public class CodeGenerator extends VisitorImpl {
         byteCodes.add("aload_0");
         byteCodes.add("iload_1");
         byteCodes.add("invokespecial Actor/<init>(I)V");
+
+        for(VarDeclaration actorVar : actorDeclaration.getActorVars())
+            byteCodes.addAll(getInitializeActorVarByteCodes(actorVar));
+
         byteCodes.add("return");
         byteCodes.add(".end method");
 
@@ -793,6 +797,53 @@ public class CodeGenerator extends VisitorImpl {
         defaultActorByteCodes.add("");
     }
 
+    private ArrayList<String> getInitializeLocalVarByteCodes(VarDeclaration varDeclaration) {
+        ArrayList<String> byteCodes = new ArrayList<>();
+
+        if (varDeclaration.getType() instanceof IntType) {
+            byteCodes.add("ldc 0");
+            byteCodes.add("istore " + currentVariableIndex);
+        }
+        else if (varDeclaration.getType() instanceof BooleanType) {
+            byteCodes.add("iconst_0");
+            byteCodes.add("istore " + currentVariableIndex);
+        }
+        else if (varDeclaration.getType() instanceof StringType) {
+            byteCodes.add("ldc \"\"");
+            byteCodes.add("astore " + currentVariableIndex);
+        }
+        else if(varDeclaration.getType() instanceof ArrayType) {
+            byteCodes.add("ldc " + ((ArrayType)varDeclaration.getType()).getSize());
+            byteCodes.add("newarray int");
+            byteCodes.add("astore " + currentVariableIndex);
+        }
+
+        return byteCodes;
+    }
+
+    private ArrayList<String> getInitializeActorVarByteCodes(VarDeclaration varDeclaration) {
+        ArrayList<String> byteCodes = new ArrayList<>();
+
+        byteCodes.add("aload_0");
+
+        if (varDeclaration.getType() instanceof IntType) {
+            byteCodes.add("ldc 0");
+        }
+        else if (varDeclaration.getType() instanceof BooleanType) {
+            byteCodes.add("iconst_0");
+        }
+        else if (varDeclaration.getType() instanceof StringType) {
+            byteCodes.add("ldc \"\"");
+        }
+        else if(varDeclaration.getType() instanceof ArrayType) {
+            byteCodes.add("ldc " + ((ArrayType)varDeclaration.getType()).getSize());
+            byteCodes.add("newarray int");
+        }
+        byteCodes.add("putfield " + currentActor.getName().getName() + "/" + varDeclaration.getIdentifier().getName() + " " + getTypeDescriptor(varDeclaration.getType()));
+
+        return byteCodes;
+    }
+
     @Override
     public void visit(Program program){
         addDefaultActorBeginningByteCodes();
@@ -865,8 +916,10 @@ public class CodeGenerator extends VisitorImpl {
         for(VarDeclaration argDeclaration: handlerDeclaration.getArgs())
             argDeclaration.accept(this);
 
-        for(VarDeclaration localVariable: handlerDeclaration.getLocalVars())
+        for(VarDeclaration localVariable: handlerDeclaration.getLocalVars()) {
+            currentByteCodes.addAll(getInitializeLocalVarByteCodes(localVariable));
             localVariable.accept(this);
+        }
 
         for(Statement statement : handlerDeclaration.getBody())
             visitStatement(statement);
