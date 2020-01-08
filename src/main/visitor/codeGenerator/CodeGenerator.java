@@ -18,6 +18,8 @@ import main.ast.type.primitiveType.IntType;
 import main.ast.type.primitiveType.StringType;
 import main.symbolTable.*;
 import main.symbolTable.itemException.*;
+import main.symbolTable.symbolTableVariableItem.SymbolTableActorVariableItem;
+import main.symbolTable.symbolTableVariableItem.SymbolTableKnownActorItem;
 import main.symbolTable.symbolTableVariableItem.SymbolTableVariableItem;
 import main.visitor.VisitorImpl;
 import org.stringtemplate.v4.compiler.Bytecode;
@@ -27,6 +29,7 @@ import java.util.ArrayList;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Stack;
+import java.util.HashMap;
 
 public class CodeGenerator extends VisitorImpl {
 
@@ -41,6 +44,9 @@ public class CodeGenerator extends VisitorImpl {
     private boolean inHandler = false;
 
     private int labelIndex = 0;
+
+    HashMap<String, Integer> mainIndexes = new HashMap<>();
+    HashMap<String, Type> mainActorTypes = new HashMap<>();
 
     static Stack<Integer> loopIndexes = new Stack<>();
     int loopDepth = 0;
@@ -62,16 +68,21 @@ public class CodeGenerator extends VisitorImpl {
     }
 
     private void pushActorDeclarationSymbolTable(ActorDeclaration actorDeclaration) {
+        SymbolTable.push(getActorDeclarationSymbolTable(actorDeclaration));
+    }
+
+    private SymbolTable getActorDeclarationSymbolTable(ActorDeclaration actorDeclaration) {
         try
         {
             String name = actorDeclaration.getName().getName();
             SymbolTableActorItem actorItem = (SymbolTableActorItem) SymbolTable.root.getInCurrentScope(SymbolTableActorItem.STARTKEY + name);
             SymbolTable next = actorItem.getActorSymbolTable();
-            SymbolTable.push(next);
+            return next;
         }
         catch(ItemNotFoundException itemNotFound)
         {
             System.out.println("There is an error in pushing ActorDeclaration symbol table");
+            return null;
         }
     }
 
@@ -142,7 +153,7 @@ public class CodeGenerator extends VisitorImpl {
     private ArrayList<String>  getActorConstructorByteCodes(ActorDeclaration actorDeclaration) {
         ArrayList<String> byteCodes = new ArrayList<String>();
 
-        byteCodes.add("method public <init>(I)V");
+        byteCodes.add(".method public <init>(I)V");
         byteCodes.add(".limit stack 2");
         byteCodes.add(".limit locals 2");
         byteCodes.add("aload_0");
@@ -640,6 +651,130 @@ public class CodeGenerator extends VisitorImpl {
         actorByteCodes.add(byteCode);
     }
 
+    private ArrayList<String> getMainBeginningByteCodes(Main mainProgram) {
+        ArrayList<String> byteCodes = new ArrayList<>();
+        byteCodes.add(".class public Main");
+        byteCodes.add(".super java/lang/Object");
+        byteCodes.add("");
+        byteCodes.add(".method public <init>()V");
+        byteCodes.add(".limit stack 1");
+        byteCodes.add(".limit locals 1");
+        byteCodes.add("0: aload_0");
+        byteCodes.add("1: invokespecial java/lang/Object/<init>()V");
+        byteCodes.add("4: return");
+        byteCodes.add(".end method");
+        byteCodes.add("");
+        byteCodes.add(".method public static main([Ljava/lang/String;)V");
+        byteCodes.add(".limit stack " + maxStackSize);
+        byteCodes.add(".limit locals " + mainProgram.getMainActors().size() + 1);
+        return byteCodes;
+    }
+
+    private ActorDeclaration getActorDeclaration(String actorName) {
+        try {
+            SymbolTableActorItem actorItem = (SymbolTableActorItem) SymbolTable.root.getInCurrentScope(SymbolTableActorItem.STARTKEY + actorName);
+            return actorItem.getActorDeclaration();
+        }
+        catch(ItemNotFoundException itemNotFound)
+        {
+            System.out.println("Logical Error in getActorDeclaration");
+            return null;
+        }
+    }
+
+    private ArrayList<String> getMainActorsInstantiationsByteCodes(Main mainProgram) {
+        ArrayList<String> byteCodes = new ArrayList<>();
+
+        int varIndex = 1;
+        for(ActorInstantiation actorInstantiation : mainProgram.getMainActors()) {
+            mainIndexes.put(actorInstantiation.getIdentifier().getName(), varIndex);
+            mainActorTypes.put(actorInstantiation.getIdentifier().getName(), (actorInstantiation.getType()));
+            String actorName = ((ActorType)actorInstantiation.getType()).getName().getName();
+            byteCodes.add("new " + actorName);
+            byteCodes.add("dup");
+            ActorDeclaration actorDeclaration = getActorDeclaration(actorName);
+            byteCodes.add("ldc " + actorDeclaration.getQueueSize());
+            byteCodes.add("invokespecial " + actorName + "/<init>(I)V");
+            byteCodes.add("astore " + varIndex++);
+        }
+        return byteCodes;
+    }
+
+    private ArrayList<String> getMainSetKnownActorsByteCodes(Main mainProgram) {
+        ArrayList<String> byteCodes = new ArrayList<>();
+        for(ActorInstantiation actorInstantiation : mainProgram.getMainActors()) {
+            byteCodes.add("aload " + mainIndexes.get(actorInstantiation.getIdentifier().getName()));
+            for(Identifier knownActor : actorInstantiation.getKnownActors()) {
+                byteCodes.add("aload " + mainIndexes.get(knownActor.getName()));
+            }
+            String invokeCode = "invokevirtual ";
+            invokeCode += (((ActorType)actorInstantiation.getType()).getName().getName());
+            invokeCode += "/setKnownActors(";
+            for(Identifier knownActor : actorInstantiation.getKnownActors()) {
+                invokeCode += getTypeDescriptor(mainActorTypes.get(knownActor.getName()));
+            }
+            invokeCode += ")V";
+
+            byteCodes.add(invokeCode);
+        }
+        return byteCodes;
+    }
+
+    private ArrayList<String> getMainInitialsByteCodes(Main mainProgram) {
+        ArrayList<String> byteCodes = new ArrayList<>();
+
+        int varIndex = 1;
+        for(ActorInstantiation actorInstantiation : mainProgram.getMainActors()) {
+            String actorName = ((ActorType)actorInstantiation.getType()).getName().getName();
+            ActorDeclaration actorDeclaration = getActorDeclaration(actorName);
+            SymbolTable actorSymbolTable = getActorDeclarationSymbolTable(actorDeclaration);
+
+            try {
+                SymbolTableHandlerItem symbolTableHandlerItem = (SymbolTableHandlerItem) actorSymbolTable.getInCurrentScope(SymbolTableHandlerItem.STARTKEY + "initial");
+                HandlerDeclaration handlerDeclaration = symbolTableHandlerItem.getHandlerDeclaration();
+
+                byteCodes.add("aload " + varIndex);
+                //TODO: args
+                String invokeCode = "invokevirtual ";
+                invokeCode += actorName;
+                invokeCode += "/initial(";
+                for(VarDeclaration varDeclaration : handlerDeclaration.getArgs()) {
+                    invokeCode += getTypeDescriptor(varDeclaration.getType());
+                }
+                invokeCode += ")V";
+                byteCodes.add(invokeCode);
+            } catch(ItemNotFoundException itemNotFoundException) {}
+
+            varIndex++;
+        }
+
+        return byteCodes;
+    }
+
+    private ArrayList<String> getMainStartsByteCodes(Main mainProgram) {
+        ArrayList<String> byteCodes = new ArrayList<>();
+
+        int varIndex = 1;
+        for(ActorInstantiation actorInstantiation : mainProgram.getMainActors()) {
+            byteCodes.add("aload " + varIndex++);
+            byteCodes.add("invokevirtual " + ((ActorType)actorInstantiation.getType()).getName().getName() + "/start()V");
+        }
+        return byteCodes;
+    }
+
+    private void addMainByteCodesFile(Main mainProgram) {
+        ArrayList<String> byteCodes = new ArrayList<>();
+
+        byteCodes.addAll(getMainBeginningByteCodes(mainProgram));
+        byteCodes.addAll(getMainActorsInstantiationsByteCodes(mainProgram));
+        byteCodes.addAll(getMainSetKnownActorsByteCodes(mainProgram));
+        byteCodes.addAll(getMainInitialsByteCodes(mainProgram));
+        byteCodes.addAll(getMainStartsByteCodes(mainProgram));
+        byteCodes.add("return");
+        byteCodes.add(".end method");
+
+        writeByteCodesFile(byteCodes, "Main");
+    }
 
     @Override
     public void visit(Program program){
@@ -743,8 +878,7 @@ public class CodeGenerator extends VisitorImpl {
 
         pushMainSymbolTable();
 
-        for(ActorInstantiation mainActor : programMain.getMainActors())
-            mainActor.accept(this);
+        addMainByteCodesFile(programMain);
 
         SymbolTable.pop();
     }
@@ -753,12 +887,6 @@ public class CodeGenerator extends VisitorImpl {
     public void visit(ActorInstantiation actorInstantiation) {
         if(actorInstantiation == null)
             return;
-
-        visitExpr(actorInstantiation.getIdentifier());
-        for(Identifier knownActor : actorInstantiation.getKnownActors())
-            visitExpr(knownActor);
-        for(Expression initArg : actorInstantiation.getInitArgs())
-            visitExpr(initArg);
     }
 
     @Override
