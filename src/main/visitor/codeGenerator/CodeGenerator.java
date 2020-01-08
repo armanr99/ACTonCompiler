@@ -35,6 +35,7 @@ public class CodeGenerator extends VisitorImpl {
 
     private final String outputPath = "./output/";
     private ArrayList<String> currentByteCodes = new ArrayList<>();
+    private ArrayList<String> defaultActorByteCodes = new ArrayList<>();
 
     private ActorDeclaration currentActor = null;
     private final int maxStackSize = 50;
@@ -762,11 +763,41 @@ public class CodeGenerator extends VisitorImpl {
         writeByteCodesFile(currentByteCodes, "Main");
     }
 
+    private void addDefaultActorBeginningByteCodes() {
+        defaultActorByteCodes.add(".class public DefaultActor");
+        defaultActorByteCodes.add(".super java/lang/Thread");
+        defaultActorByteCodes.add("");
+        defaultActorByteCodes.add(".method public <init>()V");
+        defaultActorByteCodes.add(".limit stack 1");
+        defaultActorByteCodes.add(".limit locals 1");
+        defaultActorByteCodes.add("aload_0");
+        defaultActorByteCodes.add("invokespecial java/lang/Thread/<init>()V");
+        defaultActorByteCodes.add("return");
+        defaultActorByteCodes.add(".end method");
+        defaultActorByteCodes.add("");
+    }
+
+    private void addDefaultActorHandlerByteCodes(HandlerDeclaration handlerDeclaration) {
+        defaultActorByteCodes.addAll(getHandlerInfoByteCodes(handlerDeclaration, true));
+        defaultActorByteCodes.add(".limit stack " + maxStackSize);
+        defaultActorByteCodes.add(".limit locals " + (handlerDeclaration.getArgs().size() + 2));
+        defaultActorByteCodes.add("getstatic java/lang/System/out Ljava/io/PrintStream;");
+        defaultActorByteCodes.add("ldc \"there is no msghandler named " + handlerDeclaration.getName().getName() + " in sender\"");
+        defaultActorByteCodes.add("invokevirtual java/io/PrintStream/println(Ljava/lang/String;)V");
+        defaultActorByteCodes.add("return");
+        defaultActorByteCodes.add(".end method");
+        defaultActorByteCodes.add("");
+    }
+
     @Override
     public void visit(Program program){
+        addDefaultActorBeginningByteCodes();
+
         for(ActorDeclaration actorDeclaration : program.getActors())
             actorDeclaration.accept(this);
         program.getMain().accept(this);
+
+        writeByteCodesFile(defaultActorByteCodes, "DefaultActor");
     }
 
     @Override
@@ -820,6 +851,7 @@ public class CodeGenerator extends VisitorImpl {
 
         if(handlerDeclaration.getName().getName() != "initial") {
             addHandlerByteCodesFile(handlerDeclaration);
+            addDefaultActorHandlerByteCodes(handlerDeclaration);
             currentByteCodes.addAll(getHandlerSendByteCodes(handlerDeclaration));
             currentByteCodes.add("");
         }
