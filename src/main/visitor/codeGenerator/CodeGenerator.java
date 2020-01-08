@@ -561,7 +561,17 @@ public class CodeGenerator extends VisitorImpl {
         }
     }
 
-
+    private void addBinaryAndOperatorByteCodes(BinaryExpression binaryExpression) {
+        String nElse = getLabel();
+        String nAfter = getLabel();
+        visitExpr(binaryExpression.getLeft());
+        actorByteCodes.add("ifeq " + nElse);
+        visitExpr(binaryExpression.getRight());
+        actorByteCodes.add("goto " + nAfter);
+        actorByteCodes.add(nElse + ":");
+        actorByteCodes.add("iconst_0");
+        actorByteCodes.add(nAfter + ":");
+    }
 
     private String getTypeDescriptor(Identifier identifier) {
         try {
@@ -742,6 +752,8 @@ public class CodeGenerator extends VisitorImpl {
                   binaryOperator == BinaryOperator.gt ||
                   binaryOperator == BinaryOperator.lt) {
             addBinaryRelationalOperatorsByteCodes(binaryExpression);
+        } else if(binaryOperator == binaryOperator.and) {
+            addBinaryAndOperatorByteCodes(binaryExpression);
         }
     }
 
