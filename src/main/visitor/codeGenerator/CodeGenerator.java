@@ -26,6 +26,7 @@ import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.Stack;
 
 public class CodeGenerator extends VisitorImpl {
 
@@ -40,6 +41,9 @@ public class CodeGenerator extends VisitorImpl {
     private boolean inHandler = false;
 
     private int labelIndex = 0;
+
+    static Stack<Integer> loopIndexes = new Stack<>();
+    int loopDepth = 0;
 
     private String getLabel() {
         return ("Label" + (labelIndex++));
@@ -928,28 +932,33 @@ public class CodeGenerator extends VisitorImpl {
     public void visit(For loop) {
         visitStatement(loop.getInitialize());
 
-        String nFor = getLabel();
-        String nAfter = getLabel();
-
-        actorByteCodes.add(nFor + ":");
+        loopDepth++;
+        int lastDepth = loopDepth;
+        loopIndexes.push(lastDepth);
+        actorByteCodes.add("Continue" + lastDepth + ":");
 
         if(loop.getCondition() != null) {
             visitExpr(loop.getCondition());
-            actorByteCodes.add("ifeq " + nAfter);
+            actorByteCodes.add("ifeq " + "Break" + lastDepth);
         }
 
         visitStatement(loop.getBody());
-
         visitStatement(loop.getUpdate());
-        actorByteCodes.add("goto " + nFor);
+
+        actorByteCodes.add("goto " + "Continue" + lastDepth);
+        actorByteCodes.add("Break" + lastDepth + ":");
+
+        loopIndexes.pop();
     }
 
     @Override
     public void visit(Break b) {
+        actorByteCodes.add("goto " + "Break" + loopIndexes.peek());
     }
 
     @Override
     public void visit(Continue c) {
+        actorByteCodes.add("goto " + "Continue" + loopIndexes.peek());
     }
 
     @Override
