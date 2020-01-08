@@ -301,7 +301,7 @@ public class CodeGenerator extends VisitorImpl {
         byteCodes.add("aload_0");
         byteCodes.add("getfield " + className + "/receiver " + "L" + currentActor.getName().getName() + ";");
         byteCodes.add("aload_0");
-        byteCodes.add("getfield " + className + "/sender LActor");
+        byteCodes.add("getfield " + className + "/sender LActor;");
 
 
         for(VarDeclaration arg : handlerDeclaration.getArgs()) {
@@ -367,7 +367,8 @@ public class CodeGenerator extends VisitorImpl {
     private ArrayList<String> getHandlerInfoArgsByteCodes(HandlerDeclaration handlerDeclaration) {
         String argsInfo = "";
 
-        argsInfo += "LActor;";
+        if(!handlerDeclaration.getName().getName().equals("initial"))
+            argsInfo += "LActor;";
 
         for(VarDeclaration arg : handlerDeclaration.getArgs())
             argsInfo += getTypeDescriptor(arg.getType());
@@ -399,7 +400,7 @@ public class CodeGenerator extends VisitorImpl {
         String byteCode = "invokespecial ";
         byteCode += (currentActor.getName().getName() + "_" + handlerDeclaration.getName().getName());
 
-        byteCode += ("(L" + currentActor.getName().getName() + ";");
+        byteCode += ("/<init>(L" + currentActor.getName().getName() + ";");
         byteCode += "LActor;";
         for(VarDeclaration arg : handlerDeclaration.getArgs())
             byteCode += (getTypeDescriptor(arg.getType()));
@@ -643,7 +644,15 @@ public class CodeGenerator extends VisitorImpl {
     }
 
     private void addMsgHandlerCallInvokeByteCodes(MsgHandlerCall msgHandlerCall) {
-        String byteCode = "invokevirtual Actor/send_";
+        String byteCode = "invokevirtual ";
+
+        String instanceString = msgHandlerCall.getInstance().getType().toString();
+        if(instanceString.equals("Sender"))
+            byteCode += ("Actor");
+        else
+            byteCode += instanceString;
+
+        byteCode += "/send_";
         byteCode += (msgHandlerCall.getMsgHandlerName().getName());
         byteCode += "(LActor;";
         for(Expression arg : msgHandlerCall.getArgs())
