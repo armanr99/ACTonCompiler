@@ -585,6 +585,11 @@ public class CodeGenerator extends VisitorImpl {
         actorByteCodes.add(nAfter + ":");
     }
 
+    private void addBinaryAssignByteCodes(BinaryExpression binaryExpression) {
+        visitStatement(new Assign(binaryExpression.getLeft(),binaryExpression.getRight()));
+        visitExpr(binaryExpression.getLeft());
+    }
+
     private String getTypeDescriptor(Identifier identifier) {
         try {
             String symbolTableVariableItemName = SymbolTableVariableItem.STARTKEY + identifier.getName();
@@ -608,6 +613,17 @@ public class CodeGenerator extends VisitorImpl {
         byteCodes.addAll(getHandlerMessageExecuteByteCodes(handlerDeclaration));
 
         writeByteCodesFile(byteCodes, getHandlerFileClassName(handlerDeclaration));
+    }
+
+    private int getIndex(Identifier identifier) {
+        try {
+            String symbolTableVariableItemName = SymbolTableVariableItem.STARTKEY + identifier.getName();
+            SymbolTableVariableItem symbolTableVariableItem = (SymbolTableVariableItem) SymbolTable.top.get(symbolTableVariableItemName);
+            return symbolTableVariableItem.getIndex();
+        } catch (ItemNotFoundException itemNotFoundException) {
+            System.out.println("Logical Error in Identifier visit");
+            return -1;
+        }
     }
 
     @Override
@@ -768,6 +784,8 @@ public class CodeGenerator extends VisitorImpl {
             addBinaryAndOperatorByteCodes(binaryExpression);
         } else if(binaryOperator == binaryOperator.or) {
             addBinaryOrOperatorByteCodes(binaryExpression);
+        } else if(binaryOperator == binaryOperator.assign) {
+            addBinaryAssignByteCodes(binaryExpression);
         }
     }
 
@@ -928,7 +946,31 @@ public class CodeGenerator extends VisitorImpl {
 
     @Override
     public void visit(Assign assign) {
-//        visitExpr(assign.getlValue());
-//        visitExpr(assign.getrValue());
+        Expression lvalue = assign.getlValue();
+
+        if (lvalue instanceof Identifier) {
+            int lvalueIndex = getIndex((Identifier)lvalue);
+
+            if (lvalueIndex != -1) {
+                visitExpr(assign.getrValue());
+                String loadInstruction = "";
+                if (lvalue.getType() instanceof IntType || lvalue.getType() instanceof BooleanType) {
+                    loadInstruction = "istore ";
+                } else {
+                    loadInstruction = "astore ";
+                }
+                loadInstruction += lvalueIndex;
+                actorByteCodes.add(loadInstruction);
+            } else {
+                actorByteCodes.add("aload_0");
+                visitExpr(assign.getrValue());
+                actorByteCodes.add("putfield " + currentActor.getName().getName() + "/" + ((Identifier)lvalue).getName() + " " + getTypeDescriptor(lvalue.getType()));
+            }
+        } else if (lvalue instanceof ArrayCall) {
+            visitExpr(((ArrayCall) lvalue).getArrayInstance());
+            visitExpr(((ArrayCall) lvalue).getIndex());
+            visitExpr(assign.getrValue());
+            actorByteCodes.add("iastore");
+        }
     }
 }
