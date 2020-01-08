@@ -5,6 +5,7 @@ import main.ast.node.Program;
 import main.ast.node.declaration.*;
 import main.ast.node.declaration.handler.HandlerDeclaration;
 import main.ast.node.declaration.handler.MsgHandlerDeclaration;
+import main.ast.node.expression.operators.BinaryOperator;
 import main.ast.node.expression.operators.UnaryOperator;
 import main.ast.node.statement.*;
 import main.ast.node.expression.*;
@@ -485,6 +486,36 @@ public class CodeGenerator extends VisitorImpl {
             visitExpr(unaryExpression.getOperand());
     }
 
+    private String getBinaryOperatorByteCode(BinaryOperator binaryOperator) {
+        String byteCode = "";
+        switch(binaryOperator) {
+            case add:
+                byteCode = "iadd";
+                break;
+            case sub:
+                byteCode = "isub";
+                break;
+            case mult:
+                byteCode = "imult";
+                break;
+            case div:
+                byteCode = "idiv";
+                break;
+            case mod:
+                byteCode = "irem";
+                break;
+            default:
+                break;
+        }
+        return byteCode;
+    }
+
+    private void addBinaryIntOperatorsByteCodes(BinaryExpression binaryExpression) {
+        visitExpr(binaryExpression.getLeft());
+        visitExpr(binaryExpression.getRight());
+        actorByteCodes.add(getBinaryOperatorByteCode(binaryExpression.getBinaryOperator()));
+    }
+
     private String getTypeDescriptor(Identifier identifier) {
         try {
             String symbolTableVariableItemName = SymbolTableVariableItem.STARTKEY + identifier.getName();
@@ -651,8 +682,15 @@ public class CodeGenerator extends VisitorImpl {
         if(binaryExpression == null)
             return;
 
-        visitExpr(binaryExpression.getLeft());
-        visitExpr(binaryExpression.getRight());
+        BinaryOperator binaryOperator = binaryExpression.getBinaryOperator();
+
+        if(binaryOperator == BinaryOperator.add ||
+           binaryOperator == BinaryOperator.sub ||
+           binaryOperator == BinaryOperator.mult ||
+           binaryOperator == BinaryOperator.div ||
+           binaryOperator == BinaryOperator.mod) {
+            addBinaryIntOperatorsByteCodes(binaryExpression);
+        }
     }
 
     @Override
