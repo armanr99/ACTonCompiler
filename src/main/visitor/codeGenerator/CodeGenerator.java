@@ -34,7 +34,7 @@ import java.util.HashMap;
 public class CodeGenerator extends VisitorImpl {
 
     private final String outputPath = "./output/";
-    private ArrayList<String> actorByteCodes = new ArrayList<>();
+    private ArrayList<String> currentByteCodes = new ArrayList<>();
 
     private ActorDeclaration currentActor = null;
     private final int maxStackSize = 50;
@@ -459,18 +459,18 @@ public class CodeGenerator extends VisitorImpl {
         visitExpr(unaryExpression.getOperand());
         String oneLabel = getLabel();
         String zeroLabel = getLabel();
-        actorByteCodes.add("ifeq " + oneLabel);
-        actorByteCodes.add("iconst_0");
-        actorByteCodes.add("goto " + zeroLabel);
-        actorByteCodes.add(oneLabel + ":");
-        actorByteCodes.add("iconst_1");
-        actorByteCodes.add(zeroLabel + ":");
+        currentByteCodes.add("ifeq " + oneLabel);
+        currentByteCodes.add("iconst_0");
+        currentByteCodes.add("goto " + zeroLabel);
+        currentByteCodes.add(oneLabel + ":");
+        currentByteCodes.add("iconst_1");
+        currentByteCodes.add(zeroLabel + ":");
     }
 
     private void addUnaryMinusByteCodes(UnaryExpression unaryExpression) {
-        actorByteCodes.add("iconst_0");
+        currentByteCodes.add("iconst_0");
         visitExpr(unaryExpression.getOperand());
-        actorByteCodes.add("isub");
+        currentByteCodes.add("isub");
     }
 
     private void addUnaryIncDecByteCodes(UnaryExpression unaryExpression, boolean pre, boolean inc) {
@@ -484,14 +484,14 @@ public class CodeGenerator extends VisitorImpl {
             int operandIndex = symbolTableVariableItem.getIndex();
 
             if(operandIndex != -1) {
-                actorByteCodes.add("iinc " + operandIndex + (inc ? ", 1" : ", -1"));
+                currentByteCodes.add("iinc " + operandIndex + (inc ? ", 1" : ", -1"));
             } else {
-                actorByteCodes.add("aload_0");
-                actorByteCodes.add("dup");
-                actorByteCodes.add("getfield " + currentActor.getName().getName() + "/" + operandIdentifier.getName() + " " + getTypeDescriptor(symbolTableVariableItem.getType()));
-                actorByteCodes.add("iconst_1");
-                actorByteCodes.add((inc ? "iadd" : "isub"));
-                actorByteCodes.add("putfield " + currentActor.getName().getName() + "/" + operandIdentifier.getName() + " " + getTypeDescriptor(symbolTableVariableItem.getType()));
+                currentByteCodes.add("aload_0");
+                currentByteCodes.add("dup");
+                currentByteCodes.add("getfield " + currentActor.getName().getName() + "/" + operandIdentifier.getName() + " " + getTypeDescriptor(symbolTableVariableItem.getType()));
+                currentByteCodes.add("iconst_1");
+                currentByteCodes.add((inc ? "iadd" : "isub"));
+                currentByteCodes.add("putfield " + currentActor.getName().getName() + "/" + operandIdentifier.getName() + " " + getTypeDescriptor(symbolTableVariableItem.getType()));
             }
         } catch(ItemNotFoundException itemNotFoundException) {
             System.out.println("Logical Error in addUnaryPreIncByteCodes");
@@ -549,7 +549,7 @@ public class CodeGenerator extends VisitorImpl {
     private void addBinaryArithmeticOperatorsByteCodes(BinaryExpression binaryExpression) {
         visitExpr(binaryExpression.getLeft());
         visitExpr(binaryExpression.getRight());
-        actorByteCodes.add(getBinaryArithmeticOperatorByteCode(binaryExpression.getBinaryOperator()));
+        currentByteCodes.add(getBinaryArithmeticOperatorByteCode(binaryExpression.getBinaryOperator()));
     }
 
     private void addBinaryRelationalOperatorsByteCodes(BinaryExpression binaryExpression) {
@@ -562,17 +562,17 @@ public class CodeGenerator extends VisitorImpl {
            binaryExpression.getLeft().getType() instanceof BooleanType) {
             String nTrue = getLabel();
             String nAfter = getLabel();
-            actorByteCodes.add(getBinaryRelationalOperatorByteCode(binaryOperator) + " " + nTrue);
-            actorByteCodes.add("iconst_0");
-            actorByteCodes.add("goto " + nAfter);
-            actorByteCodes.add(nTrue + ":");
-            actorByteCodes.add("iconst_1");
-            actorByteCodes.add(nAfter + ":");
+            currentByteCodes.add(getBinaryRelationalOperatorByteCode(binaryOperator) + " " + nTrue);
+            currentByteCodes.add("iconst_0");
+            currentByteCodes.add("goto " + nAfter);
+            currentByteCodes.add(nTrue + ":");
+            currentByteCodes.add("iconst_1");
+            currentByteCodes.add(nAfter + ":");
         } else if(binaryExpression.getLeft().getType() instanceof StringType) {
-            actorByteCodes.add("invokevirtual java/lang/String.equals(Ljava/lang/Object;)Z");
+            currentByteCodes.add("invokevirtual java/lang/String.equals(Ljava/lang/Object;)Z");
         }
         else {
-            actorByteCodes.add("invokevirtual java/lang/Object.equals(Ljava/lang/Object;)Z");
+            currentByteCodes.add("invokevirtual java/lang/Object.equals(Ljava/lang/Object;)Z");
         }
     }
 
@@ -580,24 +580,24 @@ public class CodeGenerator extends VisitorImpl {
         String nElse = getLabel();
         String nAfter = getLabel();
         visitExpr(binaryExpression.getLeft());
-        actorByteCodes.add("ifeq " + nElse);
+        currentByteCodes.add("ifeq " + nElse);
         visitExpr(binaryExpression.getRight());
-        actorByteCodes.add("goto " + nAfter);
-        actorByteCodes.add(nElse + ":");
-        actorByteCodes.add("iconst_0");
-        actorByteCodes.add(nAfter + ":");
+        currentByteCodes.add("goto " + nAfter);
+        currentByteCodes.add(nElse + ":");
+        currentByteCodes.add("iconst_0");
+        currentByteCodes.add(nAfter + ":");
     }
 
     private void addBinaryOrOperatorByteCodes(BinaryExpression binaryExpression) {
         String nElse = getLabel();
         String nAfter = getLabel();
         visitExpr(binaryExpression.getLeft());
-        actorByteCodes.add("ifeq " + nElse);
-        actorByteCodes.add("iconst_1");
-        actorByteCodes.add("goto " + nAfter);
-        actorByteCodes.add(nElse + ":");
+        currentByteCodes.add("ifeq " + nElse);
+        currentByteCodes.add("iconst_1");
+        currentByteCodes.add("goto " + nAfter);
+        currentByteCodes.add(nElse + ":");
         binaryExpression.getRight().accept(this);
-        actorByteCodes.add(nAfter + ":");
+        currentByteCodes.add(nAfter + ":");
     }
 
     private void addBinaryAssignByteCodes(BinaryExpression binaryExpression) {
@@ -648,26 +648,24 @@ public class CodeGenerator extends VisitorImpl {
         for(Expression arg : msgHandlerCall.getArgs())
             byteCode += getTypeDescriptor(arg.getType()); //TODO: Think! isn't there a better approach?
         byteCode += ")V";
-        actorByteCodes.add(byteCode);
+        currentByteCodes.add(byteCode);
     }
 
-    private ArrayList<String> getMainBeginningByteCodes(Main mainProgram) {
-        ArrayList<String> byteCodes = new ArrayList<>();
-        byteCodes.add(".class public Main");
-        byteCodes.add(".super java/lang/Object");
-        byteCodes.add("");
-        byteCodes.add(".method public <init>()V");
-        byteCodes.add(".limit stack 1");
-        byteCodes.add(".limit locals 1");
-        byteCodes.add("0: aload_0");
-        byteCodes.add("1: invokespecial java/lang/Object/<init>()V");
-        byteCodes.add("4: return");
-        byteCodes.add(".end method");
-        byteCodes.add("");
-        byteCodes.add(".method public static main([Ljava/lang/String;)V");
-        byteCodes.add(".limit stack " + maxStackSize);
-        byteCodes.add(".limit locals " + mainProgram.getMainActors().size() + 1);
-        return byteCodes;
+    private void addMainBeginningByteCodes(Main mainProgram) {
+        currentByteCodes.add(".class public Main");
+        currentByteCodes.add(".super java/lang/Object");
+        currentByteCodes.add("");
+        currentByteCodes.add(".method public <init>()V");
+        currentByteCodes.add(".limit stack 1");
+        currentByteCodes.add(".limit locals 1");
+        currentByteCodes.add("0: aload_0");
+        currentByteCodes.add("1: invokespecial java/lang/Object/<init>()V");
+        currentByteCodes.add("4: return");
+        currentByteCodes.add(".end method");
+        currentByteCodes.add("");
+        currentByteCodes.add(".method public static main([Ljava/lang/String;)V");
+        currentByteCodes.add(".limit stack " + maxStackSize);
+        currentByteCodes.add(".limit locals " + (mainProgram.getMainActors().size() + 1));
     }
 
     private ActorDeclaration getActorDeclaration(String actorName) {
@@ -682,30 +680,26 @@ public class CodeGenerator extends VisitorImpl {
         }
     }
 
-    private ArrayList<String> getMainActorsInstantiationsByteCodes(Main mainProgram) {
-        ArrayList<String> byteCodes = new ArrayList<>();
-
+    private void addMainActorsInstantiationsByteCodes(Main mainProgram) {
         int varIndex = 1;
         for(ActorInstantiation actorInstantiation : mainProgram.getMainActors()) {
             mainIndexes.put(actorInstantiation.getIdentifier().getName(), varIndex);
             mainActorTypes.put(actorInstantiation.getIdentifier().getName(), (actorInstantiation.getType()));
             String actorName = ((ActorType)actorInstantiation.getType()).getName().getName();
-            byteCodes.add("new " + actorName);
-            byteCodes.add("dup");
+            currentByteCodes.add("new " + actorName);
+            currentByteCodes.add("dup");
             ActorDeclaration actorDeclaration = getActorDeclaration(actorName);
-            byteCodes.add("ldc " + actorDeclaration.getQueueSize());
-            byteCodes.add("invokespecial " + actorName + "/<init>(I)V");
-            byteCodes.add("astore " + varIndex++);
+            currentByteCodes.add("ldc " + actorDeclaration.getQueueSize());
+            currentByteCodes.add("invokespecial " + actorName + "/<init>(I)V");
+            currentByteCodes.add("astore " + varIndex++);
         }
-        return byteCodes;
     }
 
-    private ArrayList<String> getMainSetKnownActorsByteCodes(Main mainProgram) {
-        ArrayList<String> byteCodes = new ArrayList<>();
+    private void addMainSetKnownActorsByteCodes(Main mainProgram) {
         for(ActorInstantiation actorInstantiation : mainProgram.getMainActors()) {
-            byteCodes.add("aload " + mainIndexes.get(actorInstantiation.getIdentifier().getName()));
+            currentByteCodes.add("aload " + mainIndexes.get(actorInstantiation.getIdentifier().getName()));
             for(Identifier knownActor : actorInstantiation.getKnownActors()) {
-                byteCodes.add("aload " + mainIndexes.get(knownActor.getName()));
+                currentByteCodes.add("aload " + mainIndexes.get(knownActor.getName()));
             }
             String invokeCode = "invokevirtual ";
             invokeCode += (((ActorType)actorInstantiation.getType()).getName().getName());
@@ -715,14 +709,11 @@ public class CodeGenerator extends VisitorImpl {
             }
             invokeCode += ")V";
 
-            byteCodes.add(invokeCode);
+            currentByteCodes.add(invokeCode);
         }
-        return byteCodes;
     }
 
-    private ArrayList<String> getMainInitialsByteCodes(Main mainProgram) {
-        ArrayList<String> byteCodes = new ArrayList<>();
-
+    private void addMainInitialsByteCodes(Main mainProgram) {
         int varIndex = 1;
         for(ActorInstantiation actorInstantiation : mainProgram.getMainActors()) {
             String actorName = ((ActorType)actorInstantiation.getType()).getName().getName();
@@ -733,8 +724,10 @@ public class CodeGenerator extends VisitorImpl {
                 SymbolTableHandlerItem symbolTableHandlerItem = (SymbolTableHandlerItem) actorSymbolTable.getInCurrentScope(SymbolTableHandlerItem.STARTKEY + "initial");
                 HandlerDeclaration handlerDeclaration = symbolTableHandlerItem.getHandlerDeclaration();
 
-                byteCodes.add("aload " + varIndex);
-                //TODO: args
+                currentByteCodes.add("aload " + varIndex);
+                for(Expression initArg : actorInstantiation.getInitArgs()) {
+                    visitExpr(initArg);
+                }
                 String invokeCode = "invokevirtual ";
                 invokeCode += actorName;
                 invokeCode += "/initial(";
@@ -742,38 +735,31 @@ public class CodeGenerator extends VisitorImpl {
                     invokeCode += getTypeDescriptor(varDeclaration.getType());
                 }
                 invokeCode += ")V";
-                byteCodes.add(invokeCode);
+                currentByteCodes.add(invokeCode);
             } catch(ItemNotFoundException itemNotFoundException) {}
 
             varIndex++;
         }
-
-        return byteCodes;
     }
 
-    private ArrayList<String> getMainStartsByteCodes(Main mainProgram) {
-        ArrayList<String> byteCodes = new ArrayList<>();
-
+    private void addMainStartsByteCodes(Main mainProgram) {
         int varIndex = 1;
         for(ActorInstantiation actorInstantiation : mainProgram.getMainActors()) {
-            byteCodes.add("aload " + varIndex++);
-            byteCodes.add("invokevirtual " + ((ActorType)actorInstantiation.getType()).getName().getName() + "/start()V");
+            currentByteCodes.add("aload " + varIndex++);
+            currentByteCodes.add("invokevirtual " + ((ActorType)actorInstantiation.getType()).getName().getName() + "/start()V");
         }
-        return byteCodes;
     }
 
     private void addMainByteCodesFile(Main mainProgram) {
-        ArrayList<String> byteCodes = new ArrayList<>();
+        addMainBeginningByteCodes(mainProgram);
+        addMainActorsInstantiationsByteCodes(mainProgram);
+        addMainSetKnownActorsByteCodes(mainProgram);
+        addMainInitialsByteCodes(mainProgram);
+        addMainStartsByteCodes(mainProgram);
+        currentByteCodes.add("return");
+        currentByteCodes.add(".end method");
 
-        byteCodes.addAll(getMainBeginningByteCodes(mainProgram));
-        byteCodes.addAll(getMainActorsInstantiationsByteCodes(mainProgram));
-        byteCodes.addAll(getMainSetKnownActorsByteCodes(mainProgram));
-        byteCodes.addAll(getMainInitialsByteCodes(mainProgram));
-        byteCodes.addAll(getMainStartsByteCodes(mainProgram));
-        byteCodes.add("return");
-        byteCodes.add(".end method");
-
-        writeByteCodesFile(byteCodes, "Main");
+        writeByteCodesFile(currentByteCodes, "Main");
     }
 
     @Override
@@ -789,17 +775,17 @@ public class CodeGenerator extends VisitorImpl {
 
         currentActor = actorDeclaration;
 
-        actorByteCodes.addAll(getActorInfoByteCodes(actorDeclaration));
-        actorByteCodes.add("");
+        currentByteCodes.addAll(getActorInfoByteCodes(actorDeclaration));
+        currentByteCodes.add("");
 
-        actorByteCodes.addAll(getFieldsByteCodes(actorDeclaration));
-        actorByteCodes.add("");
+        currentByteCodes.addAll(getFieldsByteCodes(actorDeclaration));
+        currentByteCodes.add("");
 
-        actorByteCodes.addAll(getActorConstructorByteCodes(actorDeclaration));
-        actorByteCodes.add("");
+        currentByteCodes.addAll(getActorConstructorByteCodes(actorDeclaration));
+        currentByteCodes.add("");
 
-        actorByteCodes.addAll(getSetKnownActorsByteCodes(actorDeclaration));
-        actorByteCodes.add("");
+        currentByteCodes.addAll(getSetKnownActorsByteCodes(actorDeclaration));
+        currentByteCodes.add("");
 
         for(VarDeclaration varDeclaration: actorDeclaration.getKnownActors())
             varDeclaration.accept(this);
@@ -813,8 +799,8 @@ public class CodeGenerator extends VisitorImpl {
         for(MsgHandlerDeclaration msgHandlerDeclaration: actorDeclaration.getMsgHandlers())
             msgHandlerDeclaration.accept(this);
 
-        writeByteCodesFile(actorByteCodes, actorDeclaration.getName().getName());
-        actorByteCodes.clear();
+        writeByteCodesFile(currentByteCodes, actorDeclaration.getName().getName());
+        currentByteCodes.clear();
 
         SymbolTable.pop();
     }
@@ -834,11 +820,11 @@ public class CodeGenerator extends VisitorImpl {
 
         if(handlerDeclaration.getName().getName() != "initial") {
             addHandlerByteCodesFile(handlerDeclaration);
-            actorByteCodes.addAll(getHandlerSendByteCodes(handlerDeclaration));
-            actorByteCodes.add("");
+            currentByteCodes.addAll(getHandlerSendByteCodes(handlerDeclaration));
+            currentByteCodes.add("");
         }
 
-        actorByteCodes.addAll(getHandlerBeginningByteCodes(handlerDeclaration));
+        currentByteCodes.addAll(getHandlerBeginningByteCodes(handlerDeclaration));
 
         for(VarDeclaration argDeclaration: handlerDeclaration.getArgs())
             argDeclaration.accept(this);
@@ -851,9 +837,9 @@ public class CodeGenerator extends VisitorImpl {
 
         SymbolTable.pop();
 
-        actorByteCodes.add("return");
-        actorByteCodes.add(".end method");
-        actorByteCodes.add("");
+        currentByteCodes.add("return");
+        currentByteCodes.add(".end method");
+        currentByteCodes.add("");
         inHandler = false;
     }
 
@@ -939,7 +925,7 @@ public class CodeGenerator extends VisitorImpl {
     public void visit(ArrayCall arrayCall) {
         visitExpr(arrayCall.getArrayInstance());
         visitExpr(arrayCall.getIndex());
-        actorByteCodes.add("iaload");
+        currentByteCodes.add("iaload");
     }
 
     @Override
@@ -947,8 +933,8 @@ public class CodeGenerator extends VisitorImpl {
         if(actorVarAccess == null)
             return;
 
-        actorByteCodes.add("aload_0");
-        actorByteCodes.add("getfield " + currentActor.getName().getName() + "/" + actorVarAccess.getVariable().getName() + " " + getTypeDescriptor(actorVarAccess.getVariable()));
+        currentByteCodes.add("aload_0");
+        currentByteCodes.add("getfield " + currentActor.getName().getName() + "/" + actorVarAccess.getVariable().getName() + " " + getTypeDescriptor(actorVarAccess.getVariable()));
 //        visitExpr(actorVarAccess.getVariable());
     }
 
@@ -970,10 +956,10 @@ public class CodeGenerator extends VisitorImpl {
                     loadInstruction = "aload ";
 
                 loadInstruction += (variableIndex);
-                actorByteCodes.add(loadInstruction);
+                currentByteCodes.add(loadInstruction);
             } else {
-                actorByteCodes.add("aload_0");
-                actorByteCodes.add("getfield " + currentActor.getName().getName() + "/" + identifier.getName() + " " + getTypeDescriptor(symbolTableVariableItem.getType()));
+                currentByteCodes.add("aload_0");
+                currentByteCodes.add("getfield " + currentActor.getName().getName() + "/" + identifier.getName() + " " + getTypeDescriptor(symbolTableVariableItem.getType()));
             }
         }
         catch (ItemNotFoundException itemNotFoundException) {
@@ -984,30 +970,30 @@ public class CodeGenerator extends VisitorImpl {
 
     @Override
     public void visit(Self self) {
-        actorByteCodes.add("aload_0");
+        currentByteCodes.add("aload_0");
     }
 
     @Override
     public void visit(Sender sender) {
-        actorByteCodes.add("aload_1");
+        currentByteCodes.add("aload_1");
     }
 
     @Override
     public void visit(BooleanValue value) {
         if(value.getConstant() == true)
-            actorByteCodes.add("iconst_1");
+            currentByteCodes.add("iconst_1");
         else
-            actorByteCodes.add("iconst_0");
+            currentByteCodes.add("iconst_0");
     }
 
     @Override
     public void visit(IntValue value) {
-        actorByteCodes.add("ldc " + value.getConstant()); //TODO: Bipush? Sipush? Or just ldc?
+        currentByteCodes.add("ldc " + value.getConstant()); //TODO: Bipush? Sipush? Or just ldc?
     }
 
     @Override
     public void visit(StringValue value) {
-        actorByteCodes.add("ldc " + value.getConstant());
+        currentByteCodes.add("ldc " + value.getConstant());
     }
 
     @Override
@@ -1017,7 +1003,7 @@ public class CodeGenerator extends VisitorImpl {
         }
         try {
             visitExpr(msgHandlerCall.getInstance());
-            actorByteCodes.add("aload_0");
+            currentByteCodes.add("aload_0");
             for (Expression argument : msgHandlerCall.getArgs())
                 visitExpr(argument);
             addMsgHandlerCallInvokeByteCodes(msgHandlerCall);
@@ -1041,18 +1027,18 @@ public class CodeGenerator extends VisitorImpl {
 
         if(conditional.getElseBody() == null) {
             String nAfter = getLabel();
-            actorByteCodes.add("ifeq " + nAfter);
+            currentByteCodes.add("ifeq " + nAfter);
             visitStatement(conditional.getThenBody());
-            actorByteCodes.add(nAfter + ":");
+            currentByteCodes.add(nAfter + ":");
         } else {
             String nFalse = getLabel();
-            actorByteCodes.add("ifeq " + nFalse);
+            currentByteCodes.add("ifeq " + nFalse);
             visitStatement(conditional.getElseBody());
             String nAfter = getLabel();
-            actorByteCodes.add("goto " + nAfter);
-            actorByteCodes.add(nFalse + ":");
+            currentByteCodes.add("goto " + nAfter);
+            currentByteCodes.add(nFalse + ":");
             visitStatement(conditional.getElseBody());
-            actorByteCodes.add(nAfter + ":");
+            currentByteCodes.add(nAfter + ":");
         }
     }
 
@@ -1063,30 +1049,30 @@ public class CodeGenerator extends VisitorImpl {
         loopDepth++;
         int lastDepth = loopDepth;
         loopIndexes.push(lastDepth);
-        actorByteCodes.add("Continue" + lastDepth + ":");
+        currentByteCodes.add("Continue" + lastDepth + ":");
 
         if(loop.getCondition() != null) {
             visitExpr(loop.getCondition());
-            actorByteCodes.add("ifeq " + "Break" + lastDepth);
+            currentByteCodes.add("ifeq " + "Break" + lastDepth);
         }
 
         visitStatement(loop.getBody());
         visitStatement(loop.getUpdate());
 
-        actorByteCodes.add("goto " + "Continue" + lastDepth);
-        actorByteCodes.add("Break" + lastDepth + ":");
+        currentByteCodes.add("goto " + "Continue" + lastDepth);
+        currentByteCodes.add("Break" + lastDepth + ":");
 
         loopIndexes.pop();
     }
 
     @Override
     public void visit(Break b) {
-        actorByteCodes.add("goto " + "Break" + loopIndexes.peek());
+        currentByteCodes.add("goto " + "Break" + loopIndexes.peek());
     }
 
     @Override
     public void visit(Continue c) {
-        actorByteCodes.add("goto " + "Continue" + loopIndexes.peek());
+        currentByteCodes.add("goto " + "Continue" + loopIndexes.peek());
     }
 
     @Override
@@ -1096,17 +1082,17 @@ public class CodeGenerator extends VisitorImpl {
 
         //TODO: Expressions?
 
-        actorByteCodes.add("getstatic java/lang/System/out Ljava/io/PrintStream;");
+        currentByteCodes.add("getstatic java/lang/System/out Ljava/io/PrintStream;");
 
         Expression printArg = print.getArg();
         visitExpr(printArg);
 
         if(printArg.getType() instanceof ArrayType) {
-            actorByteCodes.add("invokestatic java/util/Arrays.toString([I)Ljava/lang/String;");
-            actorByteCodes.add("invokevirtual java/io/PrintStream/println(Ljava/lang/String;)V");
+            currentByteCodes.add("invokestatic java/util/Arrays.toString([I)Ljava/lang/String;");
+            currentByteCodes.add("invokevirtual java/io/PrintStream/println(Ljava/lang/String;)V");
         }
         else
-            actorByteCodes.add("invokevirtual java/io/PrintStream/println(" + getTypeDescriptor(printArg.getType()) + ")V");
+            currentByteCodes.add("invokevirtual java/io/PrintStream/println(" + getTypeDescriptor(printArg.getType()) + ")V");
     }
 
     @Override
@@ -1125,17 +1111,17 @@ public class CodeGenerator extends VisitorImpl {
                     loadInstruction = "astore ";
                 }
                 loadInstruction += lvalueIndex;
-                actorByteCodes.add(loadInstruction);
+                currentByteCodes.add(loadInstruction);
             } else {
-                actorByteCodes.add("aload_0");
+                currentByteCodes.add("aload_0");
                 visitExpr(assign.getrValue());
-                actorByteCodes.add("putfield " + currentActor.getName().getName() + "/" + ((Identifier)lvalue).getName() + " " + getTypeDescriptor(lvalue.getType()));
+                currentByteCodes.add("putfield " + currentActor.getName().getName() + "/" + ((Identifier)lvalue).getName() + " " + getTypeDescriptor(lvalue.getType()));
             }
         } else if (lvalue instanceof ArrayCall) {
             visitExpr(((ArrayCall) lvalue).getArrayInstance());
             visitExpr(((ArrayCall) lvalue).getIndex());
             visitExpr(assign.getrValue());
-            actorByteCodes.add("iastore");
+            currentByteCodes.add("iastore");
         }
     }
 }
