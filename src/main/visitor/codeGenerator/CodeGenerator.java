@@ -573,6 +573,18 @@ public class CodeGenerator extends VisitorImpl {
         actorByteCodes.add(nAfter + ":");
     }
 
+    private void addBinaryOrOperatorByteCodes(BinaryExpression binaryExpression) {
+        String nElse = getLabel();
+        String nAfter = getLabel();
+        visitExpr(binaryExpression.getLeft());
+        actorByteCodes.add("ifeq " + nElse);
+        actorByteCodes.add("iconst_1");
+        actorByteCodes.add("goto " + nAfter);
+        actorByteCodes.add(nElse + ":");
+        binaryExpression.getRight().accept(this);
+        actorByteCodes.add(nAfter + ":");
+    }
+
     private String getTypeDescriptor(Identifier identifier) {
         try {
             String symbolTableVariableItemName = SymbolTableVariableItem.STARTKEY + identifier.getName();
@@ -754,6 +766,8 @@ public class CodeGenerator extends VisitorImpl {
             addBinaryRelationalOperatorsByteCodes(binaryExpression);
         } else if(binaryOperator == binaryOperator.and) {
             addBinaryAndOperatorByteCodes(binaryExpression);
+        } else if(binaryOperator == binaryOperator.or) {
+            addBinaryOrOperatorByteCodes(binaryExpression);
         }
     }
 
