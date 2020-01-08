@@ -486,7 +486,7 @@ public class CodeGenerator extends VisitorImpl {
             visitExpr(unaryExpression.getOperand());
     }
 
-    private String getBinaryOperatorByteCode(BinaryOperator binaryOperator) {
+    private String getBinaryArithmeticOperatorByteCode(BinaryOperator binaryOperator) {
         String byteCode = "";
         switch(binaryOperator) {
             case add:
@@ -510,11 +510,58 @@ public class CodeGenerator extends VisitorImpl {
         return byteCode;
     }
 
-    private void addBinaryIntOperatorsByteCodes(BinaryExpression binaryExpression) {
+    private String getBinaryRelationalOperatorByteCode(BinaryOperator binaryOperator) {
+        String byteCode = "";
+        switch(binaryOperator) {
+            case lt:
+                byteCode = "if_icmple";
+                break;
+            case gt:
+                byteCode = "if_icmpge";
+                break;
+            case eq:
+                byteCode = "if_icmpeq";
+                break;
+            case neq:
+                byteCode = "if_icmpne";
+                break;
+            default:
+                break;
+        }
+        return byteCode;
+    }
+
+    private void addBinaryArithmeticOperatorsByteCodes(BinaryExpression binaryExpression) {
         visitExpr(binaryExpression.getLeft());
         visitExpr(binaryExpression.getRight());
-        actorByteCodes.add(getBinaryOperatorByteCode(binaryExpression.getBinaryOperator()));
+        actorByteCodes.add(getBinaryArithmeticOperatorByteCode(binaryExpression.getBinaryOperator()));
     }
+
+    private void addBinaryRelationalOperatorsByteCodes(BinaryExpression binaryExpression) {
+        visitExpr(binaryExpression.getLeft());
+        visitExpr(binaryExpression.getRight());
+
+        BinaryOperator binaryOperator = binaryExpression.getBinaryOperator();
+
+        if(binaryExpression.getLeft().getType() instanceof IntType ||
+           binaryExpression.getLeft().getType() instanceof BooleanType) {
+            String nTrue = getLabel();
+            String nAfter = getLabel();
+            actorByteCodes.add(getBinaryRelationalOperatorByteCode(binaryOperator) + " " + nTrue);
+            actorByteCodes.add("iconst_0");
+            actorByteCodes.add("goto " + nAfter);
+            actorByteCodes.add(nTrue + ":");
+            actorByteCodes.add("iconst_1");
+            actorByteCodes.add(nAfter + ":");
+        } else if(binaryExpression.getLeft().getType() instanceof StringType) {
+            actorByteCodes.add("invokevirtual java/lang/String.equals(Ljava/lang/Object;)Z");
+        }
+        else {
+            actorByteCodes.add("invokevirtual java/lang/Object.equals(Ljava/lang/Object;)Z");
+        }
+    }
+
+
 
     private String getTypeDescriptor(Identifier identifier) {
         try {
@@ -689,7 +736,12 @@ public class CodeGenerator extends VisitorImpl {
            binaryOperator == BinaryOperator.mult ||
            binaryOperator == BinaryOperator.div ||
            binaryOperator == BinaryOperator.mod) {
-            addBinaryIntOperatorsByteCodes(binaryExpression);
+            addBinaryArithmeticOperatorsByteCodes(binaryExpression);
+        } else if(binaryOperator == BinaryOperator.eq ||
+                  binaryOperator == BinaryOperator.neq ||
+                  binaryOperator == BinaryOperator.gt ||
+                  binaryOperator == BinaryOperator.lt) {
+            addBinaryRelationalOperatorsByteCodes(binaryExpression);
         }
     }
 
@@ -832,6 +884,8 @@ public class CodeGenerator extends VisitorImpl {
     public void visit(Print print) {
         if(print == null)
             return;
+
+        //TODO: Expressions?
 
         actorByteCodes.add("getstatic java/lang/System/out Ljava/io/PrintStream;");
 
