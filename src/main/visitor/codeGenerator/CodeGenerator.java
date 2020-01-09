@@ -530,10 +530,10 @@ public class CodeGenerator extends VisitorImpl {
         String byteCode = "";
         switch(binaryOperator) {
             case lt:
-                byteCode = "if_icmple";
+                byteCode = "if_icmplt";
                 break;
             case gt:
-                byteCode = "if_icmpge";
+                byteCode = "if_icmpgt";
                 break;
             case eq:
                 byteCode = "if_icmpeq";
