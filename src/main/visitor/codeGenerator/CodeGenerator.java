@@ -1138,7 +1138,9 @@ public class CodeGenerator extends VisitorImpl {
         loopDepth++;
         int lastDepth = loopDepth;
         loopIndexes.push(lastDepth);
-        currentByteCodes.add("Continue" + lastDepth + ":");
+
+        String nFor = getLabel();
+        currentByteCodes.add(nFor + ":");
 
         if(loop.getCondition() != null) {
             visitExpr(loop.getCondition());
@@ -1146,9 +1148,11 @@ public class CodeGenerator extends VisitorImpl {
         }
 
         visitStatement(loop.getBody());
+
+        currentByteCodes.add("Continue" + lastDepth + ":");
         visitStatement(loop.getUpdate());
 
-        currentByteCodes.add("goto " + "Continue" + lastDepth);
+        currentByteCodes.add("goto " + nFor);
         currentByteCodes.add("Break" + lastDepth + ":");
 
         loopIndexes.pop();
