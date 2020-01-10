@@ -472,9 +472,8 @@ public class CodeGenerator extends VisitorImpl {
     }
 
     private void addUnaryMinusByteCodes(UnaryExpression unaryExpression) {
-        currentByteCodes.add("iconst_0");
         visitExpr(unaryExpression.getOperand());
-        currentByteCodes.add("isub");
+        currentByteCodes.add("ineg");
     }
 
     private void addUnaryIncDecByteCodes(UnaryExpression unaryExpression, boolean pre, boolean inc) {
