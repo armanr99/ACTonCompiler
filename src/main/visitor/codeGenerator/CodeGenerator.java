@@ -30,24 +30,21 @@ import java.util.HashSet;
 public class CodeGenerator extends VisitorImpl {
 
     private final String outputPath = "./output/";
+
     private ArrayList<String> currentByteCodes = new ArrayList<>();
     private ArrayList<String> defaultActorByteCodes = new ArrayList<>();
-
     private HashSet<String> addedDefaultHandlers = new HashSet<>();
+    private HashMap<String, Integer> mainIndexes = new HashMap<>();
+    private HashMap<String, Type> mainActorTypes = new HashMap<>();
 
     private ActorDeclaration currentActor = null;
-    private final int maxStackSize = 50;
-
-    private int currentVariableIndex = 1;
 
     private boolean inHandler = false;
-
+    private final int maxStackSize = 50;
+    private int currentVariableIndex = 1;
     private int labelIndex = 0;
 
-    HashMap<String, Integer> mainIndexes = new HashMap<>();
-    HashMap<String, Type> mainActorTypes = new HashMap<>();
-
-    static Stack<Integer> loopIndexes = new Stack<>();
+    private Stack<Integer> loopIndexes = new Stack<>();
     int loopDepth = 0;
 
     private String getLabel() {
@@ -667,7 +664,7 @@ public class CodeGenerator extends VisitorImpl {
         byteCode += (msgHandlerCall.getMsgHandlerName().getName());
         byteCode += "(LActor;";
         for(Expression arg : msgHandlerCall.getArgs())
-            byteCode += getTypeDescriptor(arg.getType()); //TODO: Think! isn't there a better approach?
+            byteCode += getTypeDescriptor(arg.getType());
         byteCode += ")V";
         currentByteCodes.add(byteCode);
     }
@@ -1042,7 +1039,6 @@ public class CodeGenerator extends VisitorImpl {
 
         currentByteCodes.add("aload_0");
         currentByteCodes.add("getfield " + currentActor.getName().getName() + "/" + actorVarAccess.getVariable().getName() + " " + getTypeDescriptor(actorVarAccess.getVariable()));
-//        visitExpr(actorVarAccess.getVariable());
     }
 
     @Override
@@ -1095,7 +1091,7 @@ public class CodeGenerator extends VisitorImpl {
 
     @Override
     public void visit(IntValue value) {
-        currentByteCodes.add("ldc " + value.getConstant()); //TODO: Bipush? Sipush? Or just ldc?
+        currentByteCodes.add("ldc " + value.getConstant());
     }
 
     @Override
@@ -1190,8 +1186,6 @@ public class CodeGenerator extends VisitorImpl {
     public void visit(Print print) {
         if(print == null)
             return;
-
-        //TODO: Expressions?
 
         currentByteCodes.add("getstatic java/lang/System/out Ljava/io/PrintStream;");
 
