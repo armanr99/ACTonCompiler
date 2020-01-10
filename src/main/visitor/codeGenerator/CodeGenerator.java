@@ -487,7 +487,7 @@ public class CodeGenerator extends VisitorImpl {
             int operandIndex = symbolTableVariableItem.getIndex();
 
             if(operandIndex != -1) {
-                currentByteCodes.add("iinc " + operandIndex + (inc ? ", 1" : ", -1"));
+                currentByteCodes.add("iinc " + operandIndex + (inc ? " 1" : " -1"));
             } else {
                 currentByteCodes.add("aload_0");
                 currentByteCodes.add("dup");
