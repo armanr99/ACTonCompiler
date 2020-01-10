@@ -575,6 +575,9 @@ public class CodeGenerator extends VisitorImpl {
         } else if(binaryExpression.getLeft().getType() instanceof StringType) {
             currentByteCodes.add("invokevirtual java/lang/String.equals(Ljava/lang/Object;)Z");
         }
+        else if(binaryExpression.getLeft().getType() instanceof ArrayType) {
+            currentByteCodes.add("invokestatic java/util/Arrays.equals([I[I)Z");
+        }
         else {
             currentByteCodes.add("invokevirtual java/lang/Object.equals(Ljava/lang/Object;)Z");
         }
