@@ -25,12 +25,15 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Stack;
 import java.util.HashMap;
+import java.util.HashSet;
 
 public class CodeGenerator extends VisitorImpl {
 
     private final String outputPath = "./output/";
     private ArrayList<String> currentByteCodes = new ArrayList<>();
     private ArrayList<String> defaultActorByteCodes = new ArrayList<>();
+
+    private HashSet<String> addedDefaultHandlers = new HashSet<>();
 
     private ActorDeclaration currentActor = null;
     private final int maxStackSize = 50;
@@ -786,15 +789,21 @@ public class CodeGenerator extends VisitorImpl {
     }
 
     private void addDefaultActorHandlerByteCodes(HandlerDeclaration handlerDeclaration) {
-        defaultActorByteCodes.addAll(getHandlerInfoByteCodes(handlerDeclaration, true));
-        defaultActorByteCodes.add(".limit stack " + maxStackSize);
-        defaultActorByteCodes.add(".limit locals " + (handlerDeclaration.getArgs().size() + 2));
-        defaultActorByteCodes.add("getstatic java/lang/System/out Ljava/io/PrintStream;");
-        defaultActorByteCodes.add("ldc \"there is no msghandler named " + handlerDeclaration.getName().getName() + " in sender\"");
-        defaultActorByteCodes.add("invokevirtual java/io/PrintStream/println(Ljava/lang/String;)V");
-        defaultActorByteCodes.add("return");
-        defaultActorByteCodes.add(".end method");
-        defaultActorByteCodes.add("");
+        String handlerInfo = getHandlerInfoByteCodes(handlerDeclaration, true).get(0);
+        if(addedDefaultHandlers.contains(handlerInfo)) {
+            return;
+        } else {
+            addedDefaultHandlers.add(handlerInfo);
+            defaultActorByteCodes.addAll(getHandlerInfoByteCodes(handlerDeclaration, true));
+            defaultActorByteCodes.add(".limit stack " + maxStackSize);
+            defaultActorByteCodes.add(".limit locals " + (handlerDeclaration.getArgs().size() + 2));
+            defaultActorByteCodes.add("getstatic java/lang/System/out Ljava/io/PrintStream;");
+            defaultActorByteCodes.add("ldc \"there is no msghandler named " + handlerDeclaration.getName().getName() + " in sender\"");
+            defaultActorByteCodes.add("invokevirtual java/io/PrintStream/println(Ljava/lang/String;)V");
+            defaultActorByteCodes.add("return");
+            defaultActorByteCodes.add(".end method");
+            defaultActorByteCodes.add("");
+        }
     }
 
     private ArrayList<String> getInitializeLocalVarByteCodes(VarDeclaration varDeclaration) {
