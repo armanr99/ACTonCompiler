@@ -515,7 +515,7 @@ public class CodeGenerator extends VisitorImpl {
                 byteCode = "isub";
                 break;
             case mult:
-                byteCode = "imult";
+                byteCode = "imul";
                 break;
             case div:
                 byteCode = "idiv";
