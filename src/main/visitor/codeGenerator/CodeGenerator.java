@@ -479,27 +479,51 @@ public class CodeGenerator extends VisitorImpl {
 
         try {
             Expression operand = unaryExpression.getOperand();
-            Identifier operandIdentifier;
+            Identifier operandIdentifier = null;
+            boolean isOperandActorVarAccess = false;
 
-            if(operand instanceof Identifier)
-                operandIdentifier = (Identifier)operand;
-            else
-                operandIdentifier = ((ActorVarAccess)operand).getVariable();
+            if(operand instanceof Identifier) {
+                operandIdentifier = (Identifier) operand;
+            } else if(operand instanceof ActorVarAccess) {
+                isOperandActorVarAccess = true;
+                operandIdentifier = ((ActorVarAccess) operand).getVariable();
+            } else if(operand instanceof ArrayCall) {
+                Expression instance = ((ArrayCall)operand).getArrayInstance();
+                if(instance instanceof Identifier) {
+                    operandIdentifier = (Identifier) instance;
+                }
+                else {
+                    isOperandActorVarAccess = true;
+                    operandIdentifier = ((ActorVarAccess) instance).getVariable();
+                }
+            } else {
+                System.out.println("Logical error in addUnaryIncDecByteCodes");
+            }
 
             String symbolTableVariableItemName = SymbolTableVariableItem.STARTKEY + operandIdentifier.getName();
             SymbolTableVariableItem symbolTableVariableItem = (SymbolTableVariableItem) SymbolTable.top.get(symbolTableVariableItemName);
             int operandIndex = symbolTableVariableItem.getIndex();
 
-            if(!(operand instanceof Identifier) && operandIndex != -1) {
-                currentByteCodes.add("iinc " + operandIndex + (inc ? " 1" : " -1"));
-            } else {
+
+            if(operand instanceof ArrayCall) {
+                visitExpr(((ArrayCall) operand).getArrayInstance());
+                visitExpr(((ArrayCall) operand).getIndex());
+                visitExpr(operand);
+                currentByteCodes.add("iconst_1");
+                currentByteCodes.add((inc ? "iadd" : "isub"));
+                currentByteCodes.add("iastore");
+
+            } else if (isOperandActorVarAccess || operandIndex == -1) {
                 currentByteCodes.add("aload_0");
                 currentByteCodes.add("dup");
                 currentByteCodes.add("getfield " + currentActor.getName().getName() + "/" + operandIdentifier.getName() + " " + getTypeDescriptor(symbolTableVariableItem.getType()));
                 currentByteCodes.add("iconst_1");
                 currentByteCodes.add((inc ? "iadd" : "isub"));
                 currentByteCodes.add("putfield " + currentActor.getName().getName() + "/" + operandIdentifier.getName() + " " + getTypeDescriptor(symbolTableVariableItem.getType()));
+            } else {
+                currentByteCodes.add("iinc " + operandIndex + (inc ? " 1" : " -1"));
             }
+
         } catch(ItemNotFoundException itemNotFoundException) {
             System.out.println("Logical Error in addUnaryPreIncByteCodes");
         }
@@ -613,17 +637,6 @@ public class CodeGenerator extends VisitorImpl {
     private void addBinaryAssignByteCodes(BinaryExpression binaryExpression) {
         visitStatement(new Assign(binaryExpression.getLeft(),binaryExpression.getRight()));
         visitExpr(binaryExpression.getLeft());
-    }
-
-    private String getTypeDescriptor(Identifier identifier) {
-        try {
-            String symbolTableVariableItemName = SymbolTableVariableItem.STARTKEY + identifier.getName();
-            SymbolTableVariableItem symbolTableVariableItem = (SymbolTableVariableItem) SymbolTable.top.get(symbolTableVariableItemName);
-            return getTypeDescriptor(symbolTableVariableItem.getType());
-        } catch(ItemNotFoundException itemNotFoundException) {
-            System.out.println("Logical Error in getTypeDescriptor(ID)");
-            return "";
-        }
     }
 
     private void addHandlerByteCodesFile(HandlerDeclaration handlerDeclaration) {
@@ -1038,7 +1051,7 @@ public class CodeGenerator extends VisitorImpl {
             return;
 
         currentByteCodes.add("aload_0");
-        currentByteCodes.add("getfield " + currentActor.getName().getName() + "/" + actorVarAccess.getVariable().getName() + " " + getTypeDescriptor(actorVarAccess.getVariable()));
+        currentByteCodes.add("getfield " + currentActor.getName().getName() + "/" + actorVarAccess.getVariable().getName() + " " + getTypeDescriptor(actorVarAccess.getVariable().getType()));
     }
 
     @Override
