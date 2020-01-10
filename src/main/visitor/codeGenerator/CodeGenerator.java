@@ -490,7 +490,7 @@ public class CodeGenerator extends VisitorImpl {
             SymbolTableVariableItem symbolTableVariableItem = (SymbolTableVariableItem) SymbolTable.top.get(symbolTableVariableItemName);
             int operandIndex = symbolTableVariableItem.getIndex();
 
-            if(operandIndex != -1) {
+            if(!(operand instanceof Identifier) && operandIndex != -1) {
                 currentByteCodes.add("iinc " + operandIndex + (inc ? " 1" : " -1"));
             } else {
                 currentByteCodes.add("aload_0");
@@ -1204,10 +1204,23 @@ public class CodeGenerator extends VisitorImpl {
     public void visit(Assign assign) {
         Expression lvalue = assign.getlValue();
 
-        if (lvalue instanceof Identifier) {
-            int lvalueIndex = getIndex((Identifier)lvalue);
+        if(lvalue instanceof ArrayCall) {
+            visitExpr(((ArrayCall) lvalue).getArrayInstance());
+            visitExpr(((ArrayCall) lvalue).getIndex());
+            visitExpr(assign.getrValue());
+            currentByteCodes.add("iastore");
+        }
+        else {
+            Identifier lValueIdentifier;
+            if(lvalue instanceof Identifier)
+                lValueIdentifier = (Identifier)lvalue;
+            else {
+                lValueIdentifier = ((ActorVarAccess) lvalue).getVariable();
+            }
 
-            if (lvalueIndex != -1) {
+            int lvalueIndex = getIndex(lValueIdentifier);
+
+            if (!(lvalue instanceof ActorVarAccess) && lvalueIndex != -1) {
                 visitExpr(assign.getrValue());
                 String loadInstruction = "";
                 if (lvalue.getType() instanceof IntType || lvalue.getType() instanceof BooleanType) {
@@ -1220,13 +1233,8 @@ public class CodeGenerator extends VisitorImpl {
             } else {
                 currentByteCodes.add("aload_0");
                 visitExpr(assign.getrValue());
-                currentByteCodes.add("putfield " + currentActor.getName().getName() + "/" + ((Identifier)lvalue).getName() + " " + getTypeDescriptor(lvalue.getType()));
+                currentByteCodes.add("putfield " + currentActor.getName().getName() + "/" + (lValueIdentifier).getName() + " " + getTypeDescriptor(lvalue.getType()));
             }
-        } else if (lvalue instanceof ArrayCall) {
-            visitExpr(((ArrayCall) lvalue).getArrayInstance());
-            visitExpr(((ArrayCall) lvalue).getIndex());
-            visitExpr(assign.getrValue());
-            currentByteCodes.add("iastore");
         }
     }
 }
