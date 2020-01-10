@@ -481,7 +481,14 @@ public class CodeGenerator extends VisitorImpl {
             visitExpr(unaryExpression.getOperand());
 
         try {
-            Identifier operandIdentifier = (Identifier)unaryExpression.getOperand();
+            Expression operand = unaryExpression.getOperand();
+            Identifier operandIdentifier;
+
+            if(operand instanceof Identifier)
+                operandIdentifier = (Identifier)operand;
+            else
+                operandIdentifier = ((ActorVarAccess)operand).getVariable();
+
             String symbolTableVariableItemName = SymbolTableVariableItem.STARTKEY + operandIdentifier.getName();
             SymbolTableVariableItem symbolTableVariableItem = (SymbolTableVariableItem) SymbolTable.top.get(symbolTableVariableItemName);
             int operandIndex = symbolTableVariableItem.getIndex();
