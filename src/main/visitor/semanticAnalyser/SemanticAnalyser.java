@@ -31,6 +31,7 @@ public class SemanticAnalyser extends VisitorImpl {
     private boolean inKnownActors = false;
     private boolean inInitial = false;
     private boolean inActorVarAccess = false;
+    private boolean inActorVarAccessCheck = false;
     private int inFor = 0;
     private boolean inActorInstantiationKnownActors = false;
     private boolean inActorInstantiationInits = false;
@@ -265,6 +266,7 @@ public class SemanticAnalyser extends VisitorImpl {
             if(inActorVarAccess) {
                 if(currentActor == null)
                     return;
+
                 SymbolTable.top.getPreSymbolTable().get(SymbolTableVariableItem.STARTKEY + identifier.getName());
             }
             else {
@@ -615,9 +617,9 @@ public class SemanticAnalyser extends VisitorImpl {
         if(actorVarAccess == null)
             return;
 
+        inActorVarAccess = true;
         typeCheck((Expression)actorVarAccess);
         visitExpr(actorVarAccess.getSelf());
-        inActorVarAccess = true;
         visitExpr(actorVarAccess.getVariable());
         inActorVarAccess = false;
     }
@@ -783,8 +785,10 @@ public class SemanticAnalyser extends VisitorImpl {
     }
 
     public Type typeCheck(ActorVarAccess expr){
+        inActorVarAccessCheck = true;
         Identifier variable = expr.getVariable();
         expr.setType(typeCheck((Expression)variable));
+        inActorVarAccessCheck = false;
         return expr.getType();
     }
 
@@ -813,7 +817,7 @@ public class SemanticAnalyser extends VisitorImpl {
     public Type typeCheck(Identifier expr) {
         expr.setType(new NoType());
         try {
-            if(inActorVarAccess) {
+            if(inActorVarAccess || inActorVarAccessCheck) {
                 if(currentActor == null) {
                     return expr.getType();
                 }
